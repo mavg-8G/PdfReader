@@ -87,7 +87,7 @@ export function createOcrPanel({ getContext, focusDocument }) {
       if (result.text) text.focus();
     } catch (error) {
       if (valid() && error.name !== 'AbortError' && error.name !== 'RenderingCancelledException') {
-        status.textContent = 'Unable to read this page. ' + (error.message || 'Try again or repair the OCR files.');
+        status.textContent = 'Unable to read this page. Try another page or language. If the problem continues, repair or reinstall Folio.';
       }
     } finally {
       if (canvas) canvas.width = canvas.height = 0;

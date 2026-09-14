@@ -92,10 +92,19 @@ try{
   await wait('document.getElementById("ocrText").value.includes("conexión")','real OCR of scanned Spanish text',60000);
   assert.ok(await evaluate('document.getElementById("ocrText").value.includes("niño")'));
   await wait('__ocrWorkers.size===0');pass('Spanish OCR preserves accents and document changes clear old text');
+  // Clear a completed result and cancel in-flight recognition on rotation changes.
+  await command('rotate');assert.equal(await evaluate('document.getElementById("ocrText").value'),'');
+  await evaluate('document.getElementById("ocrRead").click()');await wait('__ocrWorkers.size===1');
+  await command('rotate');assert.equal(await evaluate('__ocrWorkers.size'),0);
+  await command('rotate');await command('rotate');pass('rotation clears stale OCR and cancels the active worker');
   await evaluate('document.getElementById("ocrRead").click()');await wait('__ocrWorkers.size===1');
   await command('close');await wait('__ocrWorkers.size===0');
   assert.equal(await evaluate('document.getElementById("ocrText").value'),'');pass('closing during OCR cancels work and clears text');
   await open('reading-notes.pdf');await wait('__messages.some(m=>m.type==="state")');
+  await command('ocr');await evaluate('document.getElementById("ocrRead").click()');await wait('__ocrWorkers.size===1');
+  await command('page',{value:2});assert.equal(await evaluate('__ocrWorkers.size'),0);
+  assert.equal(await evaluate('document.getElementById("ocrText").value'),'');
+  await command('closeOcr');pass('page navigation cancels recognition without carrying over text');
   await command('thumbnail',{page:1});await wait('__messages.some(m=>m.type==="thumbnail"&&m.data.length>100)');pass('render a thumbnail on demand');
   await command('presentation',{value:true});assert.equal(await evaluate('document.body.classList.contains("presentation")'),true);await command('presentation',{value:false});pass('enter and exit presentation');
   await command('print',{pages:[1,2]});await wait('__messages.some(m=>m.type==="printReady")','prepare print pages');
