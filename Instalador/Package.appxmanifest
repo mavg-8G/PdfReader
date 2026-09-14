@@ -9,7 +9,7 @@
   <Identity
     Name="2f6c5098-b523-4d4e-ad3a-bc9721bbc1d9"
     Publisher="CN=mvasc"
-    Version="1.0.5.0" />
+    Version="1.0.6.0" />
 
   <Properties>
     <DisplayName>PDF Reader</DisplayName>
