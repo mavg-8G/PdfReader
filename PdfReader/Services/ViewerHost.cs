@@ -2,7 +2,6 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
 using PdfReader.Core;
 using System.Text.Json;
-using System.Runtime.InteropServices.WindowsRuntime;
 
 namespace PdfReader.Services;
 

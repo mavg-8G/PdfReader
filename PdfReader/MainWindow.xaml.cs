@@ -6,6 +6,7 @@ using PdfReader.Services;
 using PdfReader.ViewModels;
 
 namespace PdfReader;
+
 public sealed partial class MainWindow : Window
 {
     private readonly ReaderState _state = new();

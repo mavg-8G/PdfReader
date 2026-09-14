@@ -57,7 +57,21 @@ You can pass a PDF path as the application's first argument:
 # Or use -Platform ARM64 for a native Windows ARM64 build.
 ```
 
-Distribute the **entire** `artifacts/Folio-x64` folder. Run `PdfReader.exe` from that folder. Self-contained output includes .NET and Windows App SDK, but still requires the installed WebView2 Runtime. This repository supplies an unpackaged application, not a signed installer or Store package. Sign the executable and create your organization's installer before a managed production rollout. ARM64 requires testing on ARM64 hardware.
+Distribute the **entire** `artifacts/Folio-x64` folder. Run `PdfReader.exe` from that folder. Self-contained output includes .NET and Windows App SDK, but still requires the installed WebView2 Runtime. ARM64 requires testing on ARM64 hardware.
+
+## Build a Windows MSI installer
+
+```powershell
+./scripts/build-installer.ps1
+# For a later release:
+./scripts/build-installer.ps1 -Version 1.0.1
+```
+
+The output is `artifacts/installer/Folio-1.0.0-x64.msi`, with installation instructions and a SHA-256 checksum beside it. Double-click the MSI, approve the administrator prompt, and follow the setup wizard. Launch **Folio** from the Start menu. Users do **not** need Visual Studio, the .NET SDK, or a separately installed .NET runtime. Setup installs into Program Files by default and supports repair, upgrades, downgrade prevention, and uninstall through Windows Settings. Rebuilding the same version replaces that version; use increasing three-part versions for releases.
+
+The installer includes a self-contained Release build, the Windows App SDK, PDF.js, OCR models, and app icons. To keep download and installed size lower, it uses the shared WebView2 Evergreen Runtime. Setup checks for that runtime and gives Microsoft's download address if it is missing; it does not download prerequisites itself. After setup, PDF reading and OCR work offline. Uninstall removes installed program files and the Start-menu shortcut, while keeping PDFs and the user's `%LOCALAPPDATA%\Folio` reading preferences/browser profile.
+
+Building the installer requires the .NET SDK and Node.js already used by this project, plus internet access for the initial tool/assets restore. The script keeps pinned WiX **5.0.2** and its matching dialog extension in `.cache/wix`; Visual Studio is not required to build the MSI either. `-SkipPublish` packages an existing matching self-contained release from `artifacts/installer-publish/win-x64`. The MSI is currently **unsigned**, so Windows can identify its publisher as unknown; code signing requires a publisher-owned signing certificate. The MSI targets x64 Windows 10 build 19041 and later. No Store registration, file-association takeover, or installer runtime remains running with the app.
 
 ## Read scanned pages with OCR
 

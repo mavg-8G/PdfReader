@@ -1,0 +1,2 @@
+Tesseract.js and Tesseract.js-core 7.0.0: https://github.com/naptha/tesseract.js
+English and Spanish trained data: https://github.com/naptha/tessdata (Apache-2.0). Distributed by @tesseract.js-data packages; package metadata included.

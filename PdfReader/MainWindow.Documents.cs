@@ -9,6 +9,7 @@ using Windows.Storage.Pickers;
 using Windows.Storage.Streams;
 
 namespace PdfReader;
+
 public sealed partial class MainWindow
 {
     private async Task OpenPickerAsync()

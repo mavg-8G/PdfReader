@@ -8,6 +8,7 @@ using Windows.Storage;
 using Windows.System;
 
 namespace PdfReader;
+
 public sealed partial class MainWindow
 {
     private void Navigate(int page) { if (_state.IsOpen && !_busy) Send("page", value: _state.Navigate(page)); }
@@ -121,7 +122,8 @@ public sealed partial class MainWindow
                 else if (_presentation) SetPresentation(false);
                 else if (_fullscreen) SetFullscreen(false);
                 else if (_busy) Cancel_Click(this, new RoutedEventArgs());
-                else { Send("closeOcr"); CloseSearch(); } break;
+                else { Send("closeOcr"); CloseSearch(); }
+                break;
         }
     }
     private void AddShortcuts()
@@ -132,7 +134,7 @@ public sealed partial class MainWindow
             accelerator.Invoked += (sender, args) => { args.Handled = true; _ = RunAsync(() => ActionAsync(action)); };
             Root.KeyboardAccelerators.Add(accelerator);
         }
-        foreach (var (key, action) in new[] { (VirtualKey.O,"open"), (VirtualKey.S,"save"), (VirtualKey.P,"print"), (VirtualKey.W,"close"), (VirtualKey.F,"find"), (VirtualKey.G,"page"), (VirtualKey.R,"rotate"), (VirtualKey.Number0,"fitPage"), (VirtualKey.Number1,"actualSize"), (VirtualKey.Number2,"fitWidth") }) Add(key, VirtualKeyModifiers.Control, action);
+        foreach (var (key, action) in new[] { (VirtualKey.O, "open"), (VirtualKey.S, "save"), (VirtualKey.P, "print"), (VirtualKey.W, "close"), (VirtualKey.F, "find"), (VirtualKey.G, "page"), (VirtualKey.R, "rotate"), (VirtualKey.Number0, "fitPage"), (VirtualKey.Number1, "actualSize"), (VirtualKey.Number2, "fitWidth") }) Add(key, VirtualKeyModifiers.Control, action);
         Add((VirtualKey)187, VirtualKeyModifiers.Control, "zoomIn"); Add((VirtualKey)189, VirtualKeyModifiers.Control, "zoomOut");
         Add((VirtualKey)187, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift, "zoomIn");
         Add(VirtualKey.Add, VirtualKeyModifiers.Control, "zoomIn"); Add(VirtualKey.Subtract, VirtualKeyModifiers.Control, "zoomOut");

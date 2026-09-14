@@ -1,12 +1,21 @@
 <Solution>
   <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="ARM" />
     <Platform Name="ARM64" />
     <Platform Name="x64" />
+    <Platform Name="x86" />
   </Configurations>
-  <Project Path="PdfReader/PdfReader.csproj">
-    <Platform Solution="*|ARM64" Project="ARM64" />
-    <Platform Solution="*|x64" Project="x64" />
+  <Project Path="Instalador/Instalador.wapproj" Type="c7167f0d-bc9f-4e6e-afe1-012c56b48db5" Id="d7f5a265-cc52-408f-b5e6-ab6cb5f2eed7">
+    <Deploy />
   </Project>
   <Project Path="PdfReader.Core/PdfReader.Core.csproj" />
   <Project Path="PdfReader.Tests/PdfReader.Tests.csproj" />
+  <Project Path="PdfReader/PdfReader.csproj">
+    <Platform Solution="*|Any CPU" Project="x64" />
+    <Platform Solution="*|ARM" Project="x64" />
+    <Platform Solution="*|ARM64" Project="ARM64" />
+    <Platform Solution="*|x64" Project="x64" />
+    <Platform Solution="*|x86" Project="x64" />
+  </Project>
 </Solution>

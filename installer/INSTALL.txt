@@ -1,0 +1,23 @@
+Folio for Windows - installation
+
+1. Double-click Folio-1.0.0-x64.msi and follow the setup wizard.
+2. Approve Windows' administrator prompt to install into Program Files.
+3. Open Folio from the Start menu. Visual Studio and the .NET SDK are not needed.
+
+Requirements: 64-bit Windows 10 version 2004 or later, and Microsoft Edge
+WebView2 Evergreen Runtime. Setup checks for WebView2. If it is missing,
+install it from Microsoft's page and run Folio Setup again:
+https://developer.microsoft.com/microsoft-edge/webview2/
+
+The .NET and Windows App SDK runtimes, PDF renderer, OCR models, and icons
+are included. After installation, PDF reading and OCR work offline.
+
+To uninstall: Settings > Apps > Installed apps > Folio > Uninstall.
+Uninstall removes the app files and shortcut. PDFs, reading preferences,
+recent-file history, and the WebView2 profile in %LOCALAPPDATA%\Folio remain.
+
+This local build is unsigned and Windows may show an unknown publisher.
+The adjacent SHA256 file can be used to verify that the installer is unchanged.
+
+For unattended installation:
+msiexec /i "Folio-1.0.0-x64.msi" /qn /norestart

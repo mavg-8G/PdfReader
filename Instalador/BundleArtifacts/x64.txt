@@ -1,0 +1,2 @@
+MainPackage=C:\Users\mvasc\source\repos\PdfReader\Instalador\bin\x64\Release\Instalador_1.0.5.0_x64.msix
+SymbolPackage=C:\Users\mvasc\source\repos\PdfReader\Instalador\obj\x64\Release\Symbols\Instalador_1.0.5.0_x64.appxsym

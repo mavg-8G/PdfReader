@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 namespace PdfReader.ViewModels;
+
 public sealed class ThumbnailItem(int page) : INotifyPropertyChanged
 {
     private BitmapImage? _image;

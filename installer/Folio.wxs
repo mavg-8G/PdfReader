@@ -1,0 +1,56 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="Folio" Manufacturer="Folio" Version="$(var.Version)" Language="1033"
+           UpgradeCode="57BF456B-69B5-4280-B156-FD31F8F32DD8" Scope="perMachine">
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Folio is already installed."
+                  AllowSameVersionUpgrades="yes" Schedule="afterInstallInitialize" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+    <Icon Id="FolioIcon" SourceFile="$(var.PublishDir)\Assets\Folio.ico" />
+    <Property Id="ARPPRODUCTICON" Value="FolioIcon" />
+
+    <Property Id="WINDOWSBUILDNUMBER" Secure="yes">
+      <RegistrySearch Id="WindowsBuildSearch" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+                      Name="CurrentBuildNumber" Type="raw" Bitness="always64" />
+    </Property>
+    <Launch Condition="Installed OR (VersionNT64 AND WINDOWSBUILDNUMBER &gt;= 19041)"
+            Message="Folio requires 64-bit Windows 10 version 2004 (build 19041) or newer." />
+    <Property Id="WEBVIEW2MACHINE" Secure="yes">
+      <RegistrySearch Id="WebViewMachineSearch" Root="HKLM"
+                      Key="SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
+                      Name="pv" Type="raw" Bitness="always32" />
+    </Property>
+    <Property Id="WEBVIEW2USER" Secure="yes">
+      <RegistrySearch Id="WebViewUserSearch" Root="HKCU"
+                      Key="SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
+                      Name="pv" Type="raw" Bitness="always32" />
+    </Property>
+    <Launch Condition="Installed OR (WEBVIEW2MACHINE AND WEBVIEW2MACHINE &lt;&gt; &quot;0.0.0.0&quot;) OR (WEBVIEW2USER AND WEBVIEW2USER &lt;&gt; &quot;0.0.0.0&quot;)"
+            Message="Install Microsoft Edge WebView2 Evergreen Runtime, then run Folio Setup again. Get the runtime at https://developer.microsoft.com/microsoft-edge/webview2/ . Visual Studio and the .NET SDK are not required." />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Folio" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="FolioMenuFolder" Name="Folio">
+        <Component Id="StartMenuShortcut" Guid="1A08A087-0B07-4723-88D4-03AAB189E955">
+          <Shortcut Id="FolioShortcut" Name="Folio" Description="Read PDFs and scanned pages"
+                    Target="[INSTALLFOLDER]PdfReader.exe" WorkingDirectory="INSTALLFOLDER" Icon="FolioIcon" />
+          <RemoveFolder Id="RemoveFolioMenu" On="uninstall" />
+          <RegistryValue Root="HKLM" Key="Software\Folio\Installer" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+    <Feature Id="FolioApp" Title="Folio" Level="1">
+      <Files Include="$(var.PublishDir)\**" Directory="INSTALLFOLDER" />
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <UIRef Id="WixUI_ErrorProgressText" />
+    <!-- This project has no application EULA. Do not show WiX's placeholder license. -->
+    <UI>
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg" Order="2" Condition="NOT Installed" />
+      <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="2" Condition="NOT Installed" />
+    </UI>
+  </Package>
+</Wix>

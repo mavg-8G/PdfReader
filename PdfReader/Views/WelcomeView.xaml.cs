@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using PdfReader.Core;
 namespace PdfReader.Views;
+
 public sealed partial class WelcomeView : UserControl
 {
     public event Action? OpenRequested;
