@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+.vs/
+.cache/
+artifacts/
+node_modules/
+*.user
+*.msix
+*.msixbundle
+PdfReader/Viewer/vendor/
+PdfReader/Viewer/ocr-vendor/

@@ -1,0 +1,50 @@
+using System.Text.Json;
+namespace PdfReader.Core;
+public sealed record RecentDocument(string Path, string Key, string Name, int Page, int PageCount, string Scale, int Rotation, DateTimeOffset OpenedAt);
+public sealed class ReaderSettings
+{
+    public string Theme { get; set; } = "System";
+    public bool SidebarOpen { get; set; } = true;
+    public List<RecentDocument> Recent { get; set; } = [];
+}
+public sealed class SettingsStore(string path)
+{
+    private readonly SemaphoreSlim _gate = new(1, 1);
+    public ReaderSettings Data { get; private set; } = new();
+    public string? LastError { get; private set; }
+    public async Task LoadAsync()
+    {
+        try
+        {
+            if (!File.Exists(path)) return;
+            if (new FileInfo(path).Length > 1024 * 1024) throw new InvalidDataException("Settings are too large.");
+            Data = JsonSerializer.Deserialize<ReaderSettings>(await File.ReadAllTextAsync(path)) ?? new();
+            Data.Recent = (Data.Recent ?? []).Where(r => r is not null && !string.IsNullOrWhiteSpace(r.Path)).Take(20).ToList();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        { Data = new(); LastError = "Reading preferences could not be restored. New preferences will be saved for this session."; }
+    }
+    public RecentDocument? Find(string key) => Data.Recent.FirstOrDefault(r => r.Key == key);
+    public void Remember(DocumentSession document, ReaderState state)
+    {
+        if (!state.IsOpen) return;
+        Data.Recent.RemoveAll(r => string.Equals(r.Path, document.Path, StringComparison.OrdinalIgnoreCase));
+        Data.Recent.Insert(0, new(document.Path, document.Key, document.Name, state.Page, state.PageCount, state.Scale, state.Rotation, DateTimeOffset.Now));
+        Data.Recent = Data.Recent.Take(20).ToList();
+    }
+    public async Task<bool> SaveAsync()
+    {
+        await _gate.WaitAsync();
+        try
+        {
+            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
+            await File.WriteAllTextAsync(path + ".tmp", JsonSerializer.Serialize(Data, new JsonSerializerOptions { WriteIndented = true }));
+            File.Move(path + ".tmp", path, true);
+            LastError = null;
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        { LastError = "Reading preferences could not be saved. Check available space and folder permissions."; return false; }
+        finally { _gate.Release(); }
+    }
+}

@@ -1,0 +1,114 @@
+<Window x:Class="PdfReader.MainWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:views="using:PdfReader.Views" Title="Folio">
+ <Window.SystemBackdrop><MicaBackdrop/></Window.SystemBackdrop>
+ <Grid x:Name="Root" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Loaded="Root_Loaded" SizeChanged="Root_SizeChanged" AllowDrop="True" DragOver="Root_DragOver" Drop="Root_Drop">
+  <Grid.Resources>
+   <Style x:Key="QuietButton" TargetType="Button">
+    <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="MinWidth" Value="40"/><Setter Property="MinHeight" Value="40"/><Setter Property="Padding" Value="10"/>
+   </Style>
+  </Grid.Resources>
+  <Grid.RowDefinitions><RowDefinition Height="48"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="32"/></Grid.RowDefinitions>
+  <Grid x:Name="TitleDragArea" Margin="20,0,150,0" ColumnSpacing="14">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+   <StackPanel Orientation="Horizontal" Spacing="9" VerticalAlignment="Center">
+    <Border Width="26" Height="28" Background="#5269CD" CornerRadius="6"><FontIcon Glyph="&#xE8A5;" FontSize="15" Foreground="White"/></Border>
+    <TextBlock Text="folio" FontSize="22" FontWeight="SemiBold" CharacterSpacing="-30"/>
+   </StackPanel>
+   <TextBlock x:Name="FileNameText" Grid.Column="1" Text="A quieter place for your PDFs" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Margin="14,0,0,0" TextTrimming="CharacterEllipsis"/>
+  </Grid>
+  <Grid x:Name="ToolbarArea" Grid.Row="1" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,1,0,1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+   <CommandBar x:Name="Toolbar" DefaultLabelPosition="Collapsed" IsDynamicOverflowEnabled="True" HorizontalContentAlignment="Stretch" Background="Transparent" Padding="10,5">
+    <CommandBar.Content>
+     <UserControl x:Name="NavigationControls" IsEnabled="False"><StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+      <Button Click="Sidebar_Click" Style="{StaticResource QuietButton}" ToolTipService.ToolTip="Page thumbnails" AutomationProperties.Name="Toggle page thumbnails"><FontIcon Glyph="&#xE8F1;" FontSize="16"/></Button>
+      <Button x:Name="PreviousButton" Click="Previous_Click" Style="{StaticResource QuietButton}" ToolTipService.ToolTip="Previous page (Page Up)" AutomationProperties.Name="Previous page"><FontIcon Glyph="&#xE76B;" FontSize="12"/></Button>
+      <TextBox x:Name="PageBox" Width="48" MinWidth="48" Text="1" TextAlignment="Center" KeyDown="PageBox_KeyDown" LostFocus="PageBox_LostFocus" AutomationProperties.Name="Page number" ToolTipService.ToolTip="Go to page (Ctrl+G)"/>
+      <TextBlock x:Name="PageCountText" Text="/ 0" MinWidth="32" Margin="4,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12"/>
+      <Button x:Name="NextButton" Click="Next_Click" Style="{StaticResource QuietButton}" ToolTipService.ToolTip="Next page (Page Down)" AutomationProperties.Name="Next page"><FontIcon Glyph="&#xE76C;" FontSize="12"/></Button>
+      <Border Width="1" Height="22" Margin="8,0" Background="{ThemeResource DividerStrokeColorDefaultBrush}"/>
+      <Button x:Name="ZoomOutButton" Click="ZoomOut_Click" Style="{StaticResource QuietButton}" ToolTipService.ToolTip="Zoom out (Ctrl+-)" AutomationProperties.Name="Zoom out"><FontIcon Glyph="&#xE738;" FontSize="14"/></Button>
+      <Button x:Name="ZoomButton" Content="100%" MinWidth="68" Style="{StaticResource QuietButton}" ToolTipService.ToolTip="Zoom and page fitting" AutomationProperties.Name="Zoom and fit options">
+       <Button.Flyout><MenuFlyout>
+        <MenuFlyoutItem Text="Fit to width" Tag="page-width" Click="Scale_Click"/>
+        <MenuFlyoutItem Text="Fit to page" Tag="page-fit" Click="Scale_Click"/>
+        <MenuFlyoutSeparator/>
+        <MenuFlyoutItem Text="50%" Tag="0.5" Click="Scale_Click"/><MenuFlyoutItem Text="75%" Tag="0.75" Click="Scale_Click"/>
+        <MenuFlyoutItem Text="100% · Actual size" Tag="1" Click="Scale_Click"/><MenuFlyoutItem Text="150%" Tag="1.5" Click="Scale_Click"/>
+        <MenuFlyoutItem Text="200%" Tag="2" Click="Scale_Click"/><MenuFlyoutItem Text="400%" Tag="4" Click="Scale_Click"/>
+       </MenuFlyout></Button.Flyout>
+      </Button>
+      <Button x:Name="ZoomInButton" Click="ZoomIn_Click" Style="{StaticResource QuietButton}" ToolTipService.ToolTip="Zoom in (Ctrl++)" AutomationProperties.Name="Zoom in"><FontIcon Glyph="&#xE710;" FontSize="14"/></Button>
+     </StackPanel></UserControl>
+    </CommandBar.Content>
+    <AppBarButton Icon="OpenFile" Label="Open PDF" Click="Open_Click" ToolTipService.ToolTip="Open PDF (Ctrl+O)"/>
+    <AppBarButton x:Name="FindButton" Icon="Find" Label="Search" Click="Find_Click" IsEnabled="False" ToolTipService.ToolTip="Search document (Ctrl+F)"/>
+    <AppBarButton x:Name="OcrButton" Icon="Scan" Label="Read scanned page" Click="Ocr_Click" IsEnabled="False" ToolTipService.ToolTip="Read text from the current scanned page (OCR)"/>
+    <AppBarButton x:Name="RotateButton" Icon="Rotate" Label="Rotate clockwise" Click="Rotate_Click" IsEnabled="False" ToolTipService.ToolTip="Rotate clockwise (Ctrl+R)"/>
+    <AppBarButton x:Name="SaveButton" Icon="Save" Label="Save a copy" Click="Save_Click" IsEnabled="False" ToolTipService.ToolTip="Save a copy (Ctrl+S)"/>
+    <AppBarButton x:Name="PrintButton" Icon="Print" Label="Print" Click="Print_Click" IsEnabled="False" ToolTipService.ToolTip="Print (Ctrl+P)"/>
+    <CommandBar.SecondaryCommands>
+     <AppBarButton Label="Fit to width" Click="FitWidth_Click"/>
+     <AppBarButton Label="Fit to page" Click="FitPage_Click"/>
+     <AppBarButton Label="Fullscreen · F11" Click="Fullscreen_Click"/>
+     <AppBarButton Label="Presentation · F5" Click="Presentation_Click"/>
+     <AppBarSeparator/>
+     <AppBarButton Label="Appearance" Click="Appearance_Click"/>
+     <AppBarButton Label="Keyboard shortcuts" Click="Help_Click"/>
+     <AppBarButton Label="Close document · Ctrl+W" Click="Close_Click"/>
+    </CommandBar.SecondaryCommands>
+   </CommandBar>
+  </Grid>
+  <StackPanel Grid.Row="2" x:Name="Notices">
+   <Grid x:Name="SearchPanel" Visibility="Collapsed" Padding="16,10" ColumnSpacing="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <TextBox x:Name="SearchBox" PlaceholderText="Find in document…" MaxLength="500" TextChanged="SearchBox_TextChanged" KeyDown="SearchBox_KeyDown" AutomationProperties.Name="Search document text"/>
+    <Button Grid.Column="1" Click="FindPrevious_Click" Style="{StaticResource QuietButton}" AutomationProperties.Name="Previous match" ToolTipService.ToolTip="Previous match (Shift+Enter)"><FontIcon Glyph="&#xE70E;" FontSize="12"/></Button>
+    <Button Grid.Column="2" Click="FindNext_Click" Style="{StaticResource QuietButton}" AutomationProperties.Name="Next match" ToolTipService.ToolTip="Next match (Enter)"><FontIcon Glyph="&#xE70D;" FontSize="12"/></Button>
+    <Button Grid.Column="3" Click="CloseSearch_Click" Style="{StaticResource QuietButton}" AutomationProperties.Name="Close search"><FontIcon Glyph="&#xE711;" FontSize="12"/></Button>
+    <StackPanel Grid.Row="1" Grid.ColumnSpan="4" Orientation="Horizontal" Spacing="20" Margin="2,6,0,0">
+     <CheckBox x:Name="MatchCaseBox" Content="Match case" FontSize="12" Checked="MatchCase_Changed" Unchecked="MatchCase_Changed" MinHeight="32"/>
+     <TextBlock x:Name="SearchResultText" Text="Search selectable text in this PDF" FontSize="12" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" AutomationProperties.LiveSetting="Polite"/>
+    </StackPanel>
+   </Grid>
+   <InfoBar x:Name="MessageBar" IsOpen="False" IsClosable="True" Severity="Error"/>
+   <ProgressBar x:Name="LoadingBar" Visibility="Collapsed" IsIndeterminate="True" Height="3" AutomationProperties.Name="PDF loading progress"/>
+  </StackPanel>
+  <Grid Grid.Row="3">
+   <SplitView x:Name="DocumentSplit" OpenPaneLength="208" DisplayMode="Inline" IsPaneOpen="False" PaneBackground="{ThemeResource LayerFillColorDefaultBrush}">
+    <SplitView.Pane>
+     <Grid BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,1,0">
+      <Grid.RowDefinitions><RowDefinition Height="54"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+      <TextBlock Text="PAGES" FontSize="11" FontWeight="SemiBold" CharacterSpacing="120" Margin="22,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+      <ListView x:Name="Thumbnails" Grid.Row="1" SelectionMode="Single" SelectionChanged="Thumbnails_SelectionChanged" ContainerContentChanging="Thumbnails_ContainerContentChanging" AutomationProperties.Name="Page thumbnails" Padding="12,0,12,12" HorizontalContentAlignment="Stretch">
+       <ListView.ItemTemplate><DataTemplate>
+        <StackPanel Padding="10" Spacing="8" HorizontalAlignment="Center" AutomationProperties.Name="{Binding Label}">
+         <Border Width="128" Height="166" Background="White" BorderBrush="#18000000" BorderThickness="1" CornerRadius="2">
+          <Image Source="{Binding Image}" Stretch="Uniform" AutomationProperties.AccessibilityView="Raw"/>
+         </Border>
+         <TextBlock Text="{Binding Page}" FontSize="12" HorizontalAlignment="Center"/>
+        </StackPanel>
+       </DataTemplate></ListView.ItemTemplate>
+      </ListView>
+     </Grid>
+    </SplitView.Pane>
+    <WebView2 x:Name="DocumentView" AutomationProperties.Name="PDF document canvas"/>
+   </SplitView>
+   <views:WelcomeView x:Name="Welcome" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"/>
+   <Grid x:Name="BusyOverlay" Background="{ThemeResource LayerFillColorDefaultBrush}" Visibility="Collapsed">
+    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="16" MaxWidth="320">
+     <ProgressRing IsActive="True" Width="36" Height="36"/>
+     <TextBlock x:Name="BusyText" Text="Opening your document…" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+     <Button Content="Cancel" HorizontalAlignment="Center" Click="Cancel_Click"/>
+    </StackPanel>
+   </Grid>
+  </Grid>
+  <Grid Grid.Row="4" Padding="16,0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <TextBlock x:Name="StatusText" Text="Ready when you are" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource TextFillColorSecondaryBrush}" AutomationProperties.LiveSetting="Polite"/>
+   <TextBlock x:Name="PrivacyText" Grid.Column="1" Text="LOCAL &amp; PRIVATE" FontSize="10" CharacterSpacing="100" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+  </Grid>
+ </Grid>
+</Window>
