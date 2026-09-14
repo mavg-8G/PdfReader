@@ -23,18 +23,34 @@ let generation = 0, openSequence = 0, printGeneration = 0, presentation = false,
 let restore = {}, thumbnailQueue = [], renderingThumbnail = false, thumbnailTask = null;
 let printTask = null, printUrls = [], printBusy = false, permissions = null;
 let readyForState = false, lastQuery = '', lastCaseSensitive = false;
+let uiLanguage = 'en';
 const post = (type, fields = {}) => window.chrome?.webview?.postMessage({ type, id: documentId, ...fields });
 const ocr = createOcrPanel({
   getContext: () => ({ pdf, pageNumber: viewer.currentPageNumber, rotation: viewer.pagesRotation,
     canCopy: !!pdf && (!permissions || permissions.has(pdfjs.PermissionFlag.COPY)), printBusy }),
   focusDocument: () => container.focus()
 });
+function applyLanguage(value) {
+  uiLanguage = value === 'es' ? 'es' : 'en';
+  const spanish = uiLanguage === 'es';
+  document.documentElement.lang = uiLanguage;
+  document.title = spanish ? 'Área de documento de Folio' : 'Folio document canvas';
+  container.setAttribute('aria-label', spanish
+    ? 'Documento PDF. Selecciona texto para copiar. Usa Re Pág y Av Pág para navegar.'
+    : 'PDF document. Select text to copy. Use Page Up and Page Down to navigate.');
+  const exit = document.getElementById('exitPresentation');
+  exit.title = spanish ? 'Salir de la presentación (Escape)' : 'Exit presentation (Escape)';
+  exit.textContent = spanish ? 'Salir de la presentación · Esc' : 'Exit presentation · Esc';
+  ocr.setLanguage(uiLanguage);
+}
 
 function reportState() {
   if (!pdf || !readyForState) return;
   post('state', { page: viewer.currentPageNumber, pages: pdf.numPages, zoom: viewer.currentScale,
     scale: String(viewer.currentScaleValue), rotation: viewer.pagesRotation });
-  document.getElementById('announcement').textContent = `Page ${viewer.currentPageNumber} of ${pdf.numPages}`;
+  document.getElementById('announcement').textContent = uiLanguage === 'es'
+    ? `Página ${viewer.currentPageNumber} de ${pdf.numPages}`
+    : `Page ${viewer.currentPageNumber} of ${pdf.numPages}`;
 }
 eventBus.on('pagesinit', () => {
   viewer.pagesRotation = [0,90,180,270].includes(restore.rotation) ? restore.rotation : 0;
@@ -185,6 +201,7 @@ document.getElementById('exitPresentation').addEventListener('click', () => post
 async function receive(command) {
   if (!command || typeof command.type !== 'string') return;
   if (command.type === 'theme') { document.documentElement.dataset.theme = command.value; return; }
+  if (command.type === 'language') { applyLanguage(command.value); return; }
   if (command.type === 'open') { await openDocument(command); return; }
   if (command.type === 'close') { ++openSequence; await closeDocument(); return; }
   if (command.id !== documentId) return;
@@ -245,4 +262,5 @@ window.addEventListener('drop', event => {
   else post('warning', { message: 'Drop one PDF file at a time, or use Open PDF.' });
 });
 window.addEventListener('contextmenu', event => { if (!window.getSelection()?.toString()) event.preventDefault(); });
+applyLanguage('en');
 post('ready');

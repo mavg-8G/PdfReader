@@ -40,7 +40,7 @@ public sealed partial class MainWindow
         ZoomButton.Content = $"{_state.Zoom * 100:0}%";
     }
     private void ShowError(string title, string message) { MessageBar.Title = title; MessageBar.Message = message; MessageBar.Severity = InfoBarSeverity.Error; MessageBar.IsOpen = true; }
-    private void ShowWarning(string message) { MessageBar.Title = "Please note"; MessageBar.Message = message; MessageBar.Severity = InfoBarSeverity.Warning; MessageBar.IsOpen = true; }
+    private void ShowWarning(string message) { MessageBar.Title = T("Please note", "Ten en cuenta"); MessageBar.Message = message; MessageBar.Severity = InfoBarSeverity.Warning; MessageBar.IsOpen = true; }
     private void ShowSearch()
     {
         if (!_state.IsOpen || _busy) return;
@@ -58,6 +58,7 @@ public sealed partial class MainWindow
         _settings.Data.Theme = theme; SendTheme();
     }
     private void SendTheme() => _host.Send(new { type = "theme", value = Root.ActualTheme == ElementTheme.Dark ? "dark" : "light" });
+    private void SendLanguage() => _host.Send(new { type = "language", value = _language });
     private void UpdateSidebar()
     {
         DocumentSplit.DisplayMode = Root.ActualWidth < 900 ? SplitViewDisplayMode.Overlay : SplitViewDisplayMode.Inline;
@@ -84,16 +85,43 @@ public sealed partial class MainWindow
         _dialogOpen = true; _activeDialog = dialog;
         try { return await dialog.ShowAsync(); } finally { _dialogOpen = false; _activeDialog = null; }
     }
-    private async Task AppearanceAsync()
+    private async Task SettingsAsync()
     {
-        var combo = new ComboBox { ItemsSource = new[] { "System", "Light", "Dark" }, SelectedItem = _settings.Data.Theme, MinWidth = 240, Header = "Theme" };
-        if (await ShowDialogAsync(NewDialog("Appearance", combo, "Apply", "Cancel")) == ContentDialogResult.Primary)
-        { ApplyTheme(combo.SelectedItem?.ToString() ?? "System"); await PersistAsync(); }
+        var theme = new ComboBox
+        {
+            ItemsSource = new[] { T("Use system setting", "Usar la configuración del sistema"), T("Light", "Claro"), T("Dark", "Oscuro") },
+            SelectedIndex = _settings.Data.Theme switch { "Light" => 1, "Dark" => 2, _ => 0 },
+            MinWidth = 280,
+            Header = T("App theme", "Tema de la aplicación")
+        };
+        var language = new ComboBox
+        {
+            ItemsSource = new[] { "English", "Español" },
+            SelectedIndex = _language == "es" ? 1 : 0,
+            MinWidth = 280,
+            Header = T("Display language", "Idioma de la interfaz")
+        };
+        var panel = new StackPanel { Spacing = 18 };
+        panel.Children.Add(new TextBlock
+        {
+            Text = T("Personalize Folio. Changes apply immediately.", "Personaliza Folio. Los cambios se aplican de inmediato."),
+            Opacity = .7,
+            TextWrapping = TextWrapping.Wrap
+        });
+        panel.Children.Add(theme); panel.Children.Add(language);
+        if (await ShowDialogAsync(NewDialog(T("Settings", "Configuración"), panel, T("Apply", "Aplicar"), T("Cancel", "Cancelar"))) == ContentDialogResult.Primary)
+        {
+            ApplyTheme(theme.SelectedIndex switch { 1 => "Light", 2 => "Dark", _ => "System" });
+            ApplyLanguage(language.SelectedIndex == 1 ? "es" : "en");
+            await PersistAsync();
+        }
     }
     private async Task HelpAsync()
     {
-        const string text = "Ctrl+O     Open PDF\nCtrl+S     Save a copy\nCtrl+P     Print\nCtrl+W     Close document\nCtrl+F     Search\nEnter / Shift+Enter     Next / previous match\nF3 / Shift+F3     Next / previous match\nCtrl+G     Go to page\nPage Up / Page Down     Previous / next page\nHome / End     First / last page (in document)\nCtrl++ / Ctrl+-     Zoom in / out\nCtrl+0 / Ctrl+1 / Ctrl+2     Fit page / actual size / fit width\nCtrl+R     Rotate clockwise\nCtrl+C     Copy selected text\nF11     Fullscreen\nF5     Presentation\nEscape     Exit presentation, fullscreen, or search\n\nPDFs stay on this device. Use Read scanned page to extract English or Spanish text locally, one page at a time. Select the result and press Ctrl+C to copy. OCR text is temporary and is not added to the PDF or document-wide search. Existing annotations are shown; editing and digital signature validation are not supported.";
-        await ShowDialogAsync(NewDialog("Reading with Folio", new ScrollViewer { Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, MaxWidth = 490 }, MaxHeight = 500 }, "", "Done"));
+        var text = T(
+            "Ctrl+O     Open PDF\nCtrl+S     Save a copy\nCtrl+P     Print\nCtrl+W     Close document\nCtrl+F     Search\nEnter / Shift+Enter     Next / previous match\nF3 / Shift+F3     Next / previous match\nCtrl+G     Go to page\nPage Up / Page Down     Previous / next page\nHome / End     First / last page (in document)\nCtrl++ / Ctrl+-     Zoom in / out\nCtrl+0 / Ctrl+1 / Ctrl+2     Fit page / actual size / fit width\nCtrl+R     Rotate clockwise\nCtrl+C     Copy selected text\nF11     Fullscreen\nF5     Presentation\nEscape     Exit presentation, fullscreen, or search\n\nPDFs stay on this device. Use Read scanned page to extract English or Spanish text locally, one page at a time. Select the result and press Ctrl+C to copy. OCR text is temporary and is not added to the PDF or document-wide search. Existing annotations are shown; editing and digital signature validation are not supported.",
+            "Ctrl+O     Abrir PDF\nCtrl+S     Guardar una copia\nCtrl+P     Imprimir\nCtrl+W     Cerrar documento\nCtrl+F     Buscar\nEnter / Mayús+Enter     Coincidencia siguiente / anterior\nF3 / Mayús+F3     Coincidencia siguiente / anterior\nCtrl+G     Ir a la página\nRe Pág / Av Pág     Página anterior / siguiente\nInicio / Fin     Primera / última página\nCtrl++ / Ctrl+-     Acercar / alejar\nCtrl+0 / Ctrl+1 / Ctrl+2     Ajustar página / tamaño real / ajustar al ancho\nCtrl+R     Girar a la derecha\nCtrl+C     Copiar texto seleccionado\nF11     Pantalla completa\nF5     Presentación\nEscape     Salir de presentación, pantalla completa o búsqueda\n\nLos PDF permanecen en este dispositivo. Usa Leer página escaneada para extraer texto en inglés o español de forma local, una página a la vez. Selecciona el resultado y presiona Ctrl+C para copiarlo. El texto OCR es temporal y no se agrega al PDF ni a la búsqueda del documento. Se muestran las anotaciones existentes; no se admite la edición ni la validación de firmas digitales.");
+        await ShowDialogAsync(NewDialog(T("Reading with Folio", "Leer con Folio"), new ScrollViewer { Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, MaxWidth = 490 }, MaxHeight = 500 }, "", T("Done", "Listo")));
     }
     private async Task ActionAsync(string action)
     {
@@ -160,7 +188,7 @@ public sealed partial class MainWindow
     private void Root_DragOver(object sender, DragEventArgs e)
     {
         e.AcceptedOperation = !_busy && !_printing && e.DataView.Contains(StandardDataFormats.StorageItems) ? DataPackageOperation.Copy : DataPackageOperation.None;
-        e.DragUIOverride.Caption = "Open PDF in Folio";
+        e.DragUIOverride.Caption = T("Open PDF in Folio", "Abrir PDF en Folio");
     }
     private async void Root_Drop(object sender, DragEventArgs e)
     {
@@ -171,7 +199,7 @@ public sealed partial class MainWindow
             {
                 if (!e.DataView.Contains(StandardDataFormats.StorageItems)) return;
                 var items = await e.DataView.GetStorageItemsAsync();
-                if (items.Count != 1 || items[0] is not StorageFile file) { ShowWarning("Drop one PDF file at a time."); return; }
+                if (items.Count != 1 || items[0] is not StorageFile file) { ShowWarning(T("Drop one PDF file at a time.", "Arrastra un solo archivo PDF a la vez.")); return; }
                 await OpenDocumentAsync(file.Path);
             });
         }
@@ -209,7 +237,7 @@ public sealed partial class MainWindow
     }
     private void Fullscreen_Click(object sender, RoutedEventArgs e) => _ = RunAsync(() => ActionAsync("fullscreen"));
     private void Presentation_Click(object sender, RoutedEventArgs e) => SetPresentation(!_presentation);
-    private void Appearance_Click(object sender, RoutedEventArgs e) => _ = RunAsync(AppearanceAsync);
+    private void Settings_Click(object sender, RoutedEventArgs e) => _ = RunAsync(SettingsAsync);
     private void Help_Click(object sender, RoutedEventArgs e) => _ = RunAsync(HelpAsync);
     private void Ocr_Click(object sender, RoutedEventArgs e) { if (_state.IsOpen && !_busy && !_printing) { Send("ocr"); DocumentView.Focus(FocusState.Programmatic); } }
     private void Cancel_Click(object sender, RoutedEventArgs e) { if (_printing) { Send("cancelPrint"); _printing = false; EndBusy(); } else CloseDocument(); }

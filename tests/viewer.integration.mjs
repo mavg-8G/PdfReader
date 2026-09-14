@@ -48,6 +48,10 @@ try{
   async function open(name,restore){active=name;await evaluate('__messages=[]');await command('open',{restore});}
   const pass=name=>console.log('PASS '+name);
   await wait('__messages.some(m=>m.type==="ready")','viewer bootstrap');
+  await command('language',{value:'es'});
+  assert.equal(await evaluate('document.documentElement.lang'), 'es');
+  assert.equal(await evaluate('document.getElementById("ocrHeading").textContent'), 'Leer página escaneada');
+  await command('language',{value:'en'});pass('switch viewer interface language without restarting');
   await open('reading-notes.pdf');await wait('__messages.some(m=>m.type==="state")');
   assert.equal(await evaluate('__messages.find(m=>m.type==="loaded").pages'),3);pass('open a real PDF and report page count');
   await wait('document.querySelector(".textLayer span")?.textContent?.length>0','text rendering');

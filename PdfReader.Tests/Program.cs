@@ -86,9 +86,9 @@ AsyncTest("Settings restore page, scale, theme and history", async () =>
 {
     var path = Path.Combine(root,"settings.json"); var store = new SettingsStore(path);
     using var doc = await DocumentSession.OpenAsync(valid); var state = new ReaderState(); state.Open(10); state.Update(7,1.4,"page-fit",90);
-    store.Data.Theme="Dark"; store.Remember(doc,state); Equal(true,await store.SaveAsync());
-    var restored = new SettingsStore(path); await restored.LoadAsync();
-    Equal(7,restored.Find(doc.Key)!.Page); Equal("page-fit",restored.Find(doc.Key)!.Scale); Equal("Dark",restored.Data.Theme);
+    store.Data.Theme="Dark"; store.Data.Language="es"; store.Remember(doc,state); Equal(true,await store.SaveAsync());
+    var restored = new SettingsStore(path); restored.Load();
+    Equal(7,restored.Find(doc.Key)!.Page); Equal("page-fit",restored.Find(doc.Key)!.Scale); Equal("Dark",restored.Data.Theme); Equal("es",restored.Data.Language);
 });
 AsyncTest("Damaged preferences recover without crashing", async () =>
 {

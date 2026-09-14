@@ -26,7 +26,7 @@ public sealed partial class MainWindow
     private async Task OpenDocumentAsync(string path)
     {
         if (_closed || _busy || _printing || _dialogOpen) return;
-        if (!_viewerReady.Task.IsCompletedSuccessfully) { _pendingPath = path; StatusText.Text = "Starting the document viewer…"; return; }
+        if (!_viewerReady.Task.IsCompletedSuccessfully) { _pendingPath = path; StatusText.Text = T("Starting the document viewer…", "Iniciando el visor de documentos…"); return; }
         _busy = true; MessageBar.IsOpen = false;
         _opening?.Dispose(); _opening = new CancellationTokenSource();
         var cancellationToken = _opening.Token;
@@ -40,8 +40,8 @@ public sealed partial class MainWindow
             _thumbnails.Clear(); _thumbnailCache.Clear(); Thumbnails.ItemsSource = null;
             SearchPanel.Visibility = Visibility.Collapsed; SearchBox.Text = "";
             FileNameText.Text = document.Name; ToolTipService.SetToolTip(FileNameText, document.Path);
-            Title = document.Name + " — Folio"; Welcome.Visibility = Visibility.Collapsed;
-            DocumentView.IsTabStop = true; SetBusy("Opening your document…"); UpdateControls();
+            Title = document.Name + " — Folio"; DocumentSplit.Visibility = Visibility.Visible; Welcome.Visibility = Visibility.Collapsed;
+            DocumentView.IsTabStop = true; SetBusy(T("Opening your document…", "Abriendo el documento…")); UpdateControls();
             var recent = _settings.Find(document.Key);
             _host.Send(new { type = "open", id = document.Id, url = _host.DocumentUrl, restore = new { page = recent?.Page ?? 1, scale = recent?.Scale ?? "page-width", rotation = recent?.Rotation ?? 0 } });
             previous?.Dispose(); _openTimer.Start();
@@ -62,7 +62,7 @@ public sealed partial class MainWindow
                 _canPrint = message.GetProperty("canPrint").GetBoolean();
                 for (var page = 1; page <= _state.PageCount; page++) _thumbnails.Add(new(page));
                 Thumbnails.ItemsSource = _thumbnails; UpdateControls(); UpdateSidebar();
-                StatusText.Text = $"{_state.PageCount:N0} pages · {FormatSize(_host.Document!.Length)} · Select text to copy";
+                UpdateDocumentStatus();
                 Remember(); break;
             case "state":
                 if (!_state.IsOpen) return;
@@ -77,41 +77,53 @@ public sealed partial class MainWindow
                 var total = message.TryGetProperty("total", out var t) && t.TryGetDouble(out var totalValue) ? totalValue : 0;
                 LoadingBar.IsIndeterminate = total <= 0;
                 if (total > 0) LoadingBar.Value = Math.Clamp(loaded / total * 100, 0, 100);
-                BusyText.Text = total > 0 ? $"Opening your document… {Math.Clamp(loaded / total * 100, 0, 100):0}%" : "Reading your document…";
+                BusyText.Text = total > 0
+                    ? T($"Opening your document… {Math.Clamp(loaded / total * 100, 0, 100):0}%", $"Abriendo el documento… {Math.Clamp(loaded / total * 100, 0, 100):0}%")
+                    : T("Reading your document…", "Leyendo el documento…");
                 break;
             case "password": await PasswordAsync(message.GetProperty("incorrect").GetBoolean(), id); break;
             case "error":
-                var title = GetString(message, "title"); var error = GetString(message, "message");
+                var title = TranslateKnown(GetString(message, "title")); var error = TranslateKnown(GetString(message, "message"));
                 CloseDocument(); ShowError(title, error); break;
-            case "warning": ShowWarning(GetString(message, "message")); break;
+            case "warning": ShowWarning(TranslateKnown(GetString(message, "message"))); break;
             case "find":
                 var current = message.TryGetProperty("current", out var c) ? c.GetInt32() : 0;
                 var count = message.TryGetProperty("total", out var n) ? n.GetInt32() : 0;
                 var pending = message.TryGetProperty("pending", out var p) && p.GetBoolean();
-                SearchResultText.Text = string.IsNullOrEmpty(SearchBox.Text) ? "Search selectable text in this PDF" : pending ? "Searching…" : count == 0 ? "No matches · scanned pages may need OCR" : $"{current} of {count} matches";
+                SearchResultText.Text = string.IsNullOrEmpty(SearchBox.Text)
+                    ? T("Search selectable text in this PDF", "Busca texto seleccionable en este PDF")
+                    : pending
+                        ? T("Searching…", "Buscando…")
+                        : count == 0
+                            ? T("No matches · scanned pages may need OCR", "Sin coincidencias · las páginas escaneadas pueden necesitar OCR")
+                            : T($"{current} of {count} matches", $"{current} de {count} coincidencias");
                 break;
             case "thumbnail": await SetThumbnailAsync(message, id); break;
             case "thumbnailFailed":
                 var failedPage = message.GetProperty("page").GetInt32();
                 if (failedPage >= 1 && failedPage <= _thumbnails.Count) _thumbnails[failedPage - 1].Requested = false;
                 break;
-            case "printProgress": BusyText.Text = $"Preparing page {message.GetProperty("current").GetInt32()} of {message.GetProperty("total").GetInt32()}…"; break;
+            case "printProgress":
+                var printCurrent = message.GetProperty("current").GetInt32();
+                var printTotal = message.GetProperty("total").GetInt32();
+                BusyText.Text = T($"Preparing page {printCurrent} of {printTotal}…", $"Preparando la página {printCurrent} de {printTotal}…");
+                break;
             case "printReady":
-                EndBusy(); StatusText.Text = "Print preview is ready. Choose your printer and paper settings.";
+                EndBusy(); StatusText.Text = T("Print preview is ready. Choose your printer and paper settings.", "La vista previa está lista. Elige la impresora y la configuración del papel.");
                 _host.ShowPrintDialog(); break;
-            case "printError": _printing = false; EndBusy(); ShowError("Unable to prepare printing", GetString(message, "message")); break;
-            case "printClosed": _printing = false; EndBusy(); StatusText.Text = "Print dialog closed"; break;
+            case "printError": _printing = false; EndBusy(); ShowError(T("Unable to prepare printing", "No se pudo preparar la impresión"), TranslateKnown(GetString(message, "message"))); break;
+            case "printClosed": _printing = false; EndBusy(); StatusText.Text = T("Print dialog closed", "Diálogo de impresión cerrado"); break;
         }
     }
     private async Task PasswordAsync(bool incorrect, string id)
     {
         _openTimer.Stop();
-        var input = new PasswordBox { PlaceholderText = "Document password", MinWidth = 260 };
-        AutomationProperties.SetName(input, "Document password");
+        var input = new PasswordBox { PlaceholderText = T("Document password", "Contraseña del documento"), MinWidth = 260 };
+        AutomationProperties.SetName(input, T("Document password", "Contraseña del documento"));
         var content = new StackPanel { Spacing = 12 };
-        content.Children.Add(new TextBlock { Text = incorrect ? "That password wasn’t accepted. Please try again." : "This document is encrypted. Enter its password to read it.", TextWrapping = TextWrapping.Wrap });
-        content.Children.Add(input); content.Children.Add(new TextBlock { Text = "Your password is never saved.", FontSize = 12 });
-        var dialog = NewDialog("Unlock PDF", content, "Unlock", "Cancel");
+        content.Children.Add(new TextBlock { Text = incorrect ? T("That password wasn’t accepted. Please try again.", "No se aceptó esa contraseña. Inténtalo de nuevo.") : T("This document is encrypted. Enter its password to read it.", "Este documento está cifrado. Introduce su contraseña para leerlo."), TextWrapping = TextWrapping.Wrap });
+        content.Children.Add(input); content.Children.Add(new TextBlock { Text = T("Your password is never saved.", "La contraseña nunca se guarda."), FontSize = 12, Opacity = .7 });
+        var dialog = NewDialog(T("Unlock PDF", "Desbloquear PDF"), content, T("Unlock", "Desbloquear"), T("Cancel", "Cancelar"));
         dialog.PrimaryButtonClick += (_, args) => args.Cancel = input.Password.Length == 0;
         dialog.Opened += (_, _) => input.Focus(FocusState.Programmatic);
         var result = await ShowDialogAsync(dialog);
@@ -139,28 +151,28 @@ public sealed partial class MainWindow
     private async Task SaveCopyAsync()
     {
         if (_host.Document is not { } document || !_state.IsOpen || _busy || _printing || _dialogOpen) return;
-        var picker = new FileSavePicker { SuggestedFileName = Path.GetFileNameWithoutExtension(document.Name) + " - copy" };
-        picker.FileTypeChoices.Add("PDF document", new List<string> { ".pdf" });
+        var picker = new FileSavePicker { SuggestedFileName = Path.GetFileNameWithoutExtension(document.Name) + T(" - copy", " - copia") };
+        picker.FileTypeChoices.Add(T("PDF document", "Documento PDF"), new List<string> { ".pdf" });
         WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(this));
         _dialogOpen = true; StorageFile? destination;
         try { destination = await picker.PickSaveFileAsync(); } finally { _dialogOpen = false; }
         if (destination is null) return;
         _busy = true;
-        try { await document.SaveCopyAsync(destination.Path); StatusText.Text = "Copy saved · " + destination.Name; }
+        try { await document.SaveCopyAsync(destination.Path); StatusText.Text = T("Copy saved · ", "Copia guardada · ") + destination.Name; }
         finally { _busy = false; }
     }
     private async Task PrintAsync()
     {
         if (!_state.IsOpen || _busy || _printing || _dialogOpen) return;
-        if (!_canPrint) { ShowWarning("Printing is restricted by this document’s permissions."); return; }
-        var pages = new TextBox { Text = _state.PageCount <= 30 ? $"1-{_state.PageCount}" : _state.Page.ToString(), PlaceholderText = "1-5, 8", Header = "Pages to print" };
-        var hint = new TextBlock { Text = "Print the selected pages at 144 dpi. Choose paper size and orientation in the next dialog. Large documents can be printed in smaller batches.", TextWrapping = TextWrapping.Wrap, MaxWidth = 380 };
+        if (!_canPrint) { ShowWarning(T("Printing is restricted by this document’s permissions.", "Los permisos de este documento restringen la impresión.")); return; }
+        var pages = new TextBox { Text = _state.PageCount <= 30 ? $"1-{_state.PageCount}" : _state.Page.ToString(), PlaceholderText = "1-5, 8", Header = T("Pages to print", "Páginas para imprimir") };
+        var hint = new TextBlock { Text = T("Print the selected pages at 144 dpi. Choose paper size and orientation in the next dialog. Large documents can be printed in smaller batches.", "Imprime las páginas seleccionadas a 144 ppp. Elige el tamaño y la orientación del papel en el siguiente diálogo. Los documentos grandes pueden imprimirse en lotes más pequeños."), TextWrapping = TextWrapping.Wrap, MaxWidth = 380 };
         var validation = new TextBlock { TextWrapping = TextWrapping.Wrap };
         var panel = new StackPanel { Spacing = 14 }; panel.Children.Add(hint); panel.Children.Add(pages); panel.Children.Add(validation);
-        var dialog = NewDialog("Print document", panel, "Continue", "Cancel"); int[]? selected = null;
-        dialog.PrimaryButtonClick += (_, args) => { try { selected = PrintRange.Parse(pages.Text, _state.PageCount); } catch (FormatException ex) { validation.Text = ex.Message; args.Cancel = true; } };
+        var dialog = NewDialog(T("Print document", "Imprimir documento"), panel, T("Continue", "Continuar"), T("Cancel", "Cancelar")); int[]? selected = null;
+        dialog.PrimaryButtonClick += (_, args) => { try { selected = PrintRange.Parse(pages.Text, _state.PageCount); } catch (FormatException ex) { validation.Text = TranslateKnown(ex.Message); args.Cancel = true; } };
         if (await ShowDialogAsync(dialog) != ContentDialogResult.Primary || selected is null) return;
-        _printing = true; SetBusy("Preparing pages for printing…");
+        _printing = true; SetBusy(T("Preparing pages for printing…", "Preparando las páginas para imprimir…"));
         _host.Send(new { type = "print", id = _host.Document!.Id, pages = selected });
     }
     private void CloseDocument()
@@ -172,11 +184,11 @@ public sealed partial class MainWindow
         _host.Send(new { type = "close" });
         var previous = _host.Document; _host.Document = null; previous?.Dispose();
         _state.Reset(); _thumbnails.Clear(); _thumbnailCache.Clear(); Thumbnails.ItemsSource = null;
-        DocumentSplit.IsPaneOpen = false;
+        DocumentSplit.IsPaneOpen = false; DocumentSplit.Visibility = Visibility.Collapsed;
         Welcome.SetRecent(_settings.Data.Recent); Welcome.Visibility = Visibility.Visible; DocumentView.IsTabStop = false;
-        FileNameText.Text = "A quieter place for your PDFs"; Title = "Folio"; ToolTipService.SetToolTip(FileNameText, null);
+        FileNameText.Text = T("PDF reader", "Lector de PDF"); Title = "Folio"; ToolTipService.SetToolTip(FileNameText, null);
         SearchPanel.Visibility = Visibility.Collapsed;
-        EndBusy(); UpdateControls(); StatusText.Text = "Ready when you are";
+        EndBusy(); UpdateControls(); StatusText.Text = T("Ready", "Listo");
     }
     private static string GetString(JsonElement element, string property) => element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : "";
     private static string FormatSize(long length) => length < 1024 * 1024 ? $"{length / 1024.0:0.#} KB" : $"{length / 1024.0 / 1024:0.#} MB";

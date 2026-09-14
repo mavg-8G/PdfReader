@@ -14,21 +14,21 @@
   </div>
   <aside id="ocrPanel" aria-labelledby="ocrHeading" hidden>
     <div class="ocr-header"><h2 id="ocrHeading">Read scanned page</h2><button id="ocrClose" aria-label="Close scanned-page reader">&#x2715;</button></div>
-    <p>Extract text from a photo or scan, one page at a time. Everything stays on this device.</p>
+    <p id="ocrDescription">Extract text from a photo or scan, one page at a time. Everything stays on this device.</p>
     <div class="ocr-actions">
-      <label for="ocrLanguage">Language</label>
+      <label id="ocrLanguageLabel" for="ocrLanguage">Language</label>
       <select id="ocrLanguage"><option value="eng">English</option><option value="spa">Español</option></select>
       <button id="ocrRead">Read page</button><button id="ocrCancel" hidden>Cancel</button>
     </div>
     <progress id="ocrProgress" max="100" aria-label="Text recognition progress" hidden></progress>
     <p id="ocrStatus" role="status" aria-live="polite"></p>
-    <label for="ocrText">Recognized text</label>
+    <label id="ocrTextLabel" for="ocrText">Recognized text</label>
     <textarea id="ocrText" readonly spellcheck="false" placeholder="Text from this page will appear here."></textarea>
-    <div class="ocr-actions"><button id="ocrSelect">Select all text</button><span>Ctrl+C to copy</span></div>
-    <label for="ocrSearch">Find in recognized text</label>
+    <div class="ocr-actions"><button id="ocrSelect">Select all text</button><span id="ocrCopyHint">Ctrl+C to copy</span></div>
+    <label id="ocrSearchLabel" for="ocrSearch">Find in recognized text</label>
     <div class="ocr-actions"><input id="ocrSearch" type="search" maxlength="500" placeholder="Find on this page…"><button id="ocrFind">Next</button></div>
     <span id="ocrMatch" role="status"></span>
-    <p class="ocr-note">OCR may make mistakes. This text is temporary; it isn’t added to the PDF or document-wide search.</p>
+    <p id="ocrNote" class="ocr-note">OCR may make mistakes. This text is temporary; it isn’t added to the PDF or document-wide search.</p>
   </aside>
   <div id="printContainer" aria-hidden="true"></div>
   <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
