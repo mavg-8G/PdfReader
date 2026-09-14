@@ -112,6 +112,8 @@ Do not equate headless print output with a physical printer test. Use `docs/acce
 
 ## Project structure
 
+The application artwork lives in `PdfReader/Assets`. `Folio.ico` supplies the executable and window icons (16–256 px); the PNG assets keep their Windows manifest filenames and sizes. `Folio.svg` is the editable vector master. To regenerate the matching assets from the shared vector paths, run `./scripts/generate-icons.ps1` in PowerShell 7 on Windows. It uses built-in .NET drawing APIs and writes a light/dark preview to `artifacts/icons/folio-icons-preview.png`. No image library is added to the app.
+
 ```text
 PdfReader.slnx
 PdfReader/

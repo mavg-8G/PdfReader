@@ -23,6 +23,7 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "Folio.ico"));
         _settings = new SettingsStore(Path.Combine(App.DataFolder, "settings.json"));
         _host = new ViewerHost(DocumentView);
         _host.Message += message => _ = RunAsync(() => ReceiveAsync(message));
