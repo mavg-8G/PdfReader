@@ -1,6 +1,6 @@
-MainPackage=C:\Users\mvasc\source\repos\PdfReader\Instalador\bin\x64\Release\Instalador_1.0.6.0_x64.msix
-SymbolPackage=C:\Users\mvasc\source\repos\PdfReader\Instalador\obj\x64\Release\Symbols\Instalador_1.0.6.0_x64.appxsym
-ResourcePack=C:\Users\mvasc\source\repos\PdfReader\Instalador\bin\x64\Release\Instalador_1.0.6.0_scale-100.msix
-ResourcePack=C:\Users\mvasc\source\repos\PdfReader\Instalador\bin\x64\Release\Instalador_1.0.6.0_scale-125.msix
-ResourcePack=C:\Users\mvasc\source\repos\PdfReader\Instalador\bin\x64\Release\Instalador_1.0.6.0_scale-150.msix
-ResourcePack=C:\Users\mvasc\source\repos\PdfReader\Instalador\bin\x64\Release\Instalador_1.0.6.0_scale-400.msix
+MainPackage=C:\Users\mvasc\source\repos\PdfReader\Instalador\bin\x64\Release\Instalador_1.0.7.0_x64.msix
+SymbolPackage=C:\Users\mvasc\source\repos\PdfReader\Instalador\obj\x64\Release\Symbols\Instalador_1.0.7.0_x64.appxsym
+ResourcePack=C:\Users\mvasc\source\repos\PdfReader\Instalador\bin\x64\Release\Instalador_1.0.7.0_scale-100.msix
+ResourcePack=C:\Users\mvasc\source\repos\PdfReader\Instalador\bin\x64\Release\Instalador_1.0.7.0_scale-125.msix
+ResourcePack=C:\Users\mvasc\source\repos\PdfReader\Instalador\bin\x64\Release\Instalador_1.0.7.0_scale-150.msix
+ResourcePack=C:\Users\mvasc\source\repos\PdfReader\Instalador\bin\x64\Release\Instalador_1.0.7.0_scale-400.msix
