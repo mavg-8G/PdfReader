@@ -72,10 +72,12 @@ public sealed partial class MainWindow
     {
         if (enabled && (!_state.IsOpen || _busy)) return;
         _presentation = enabled; Send("presentation", value: enabled); SetFullscreen(enabled);
-        ToolbarArea.Visibility = TitleDragArea.Visibility = enabled ? Visibility.Collapsed : Visibility.Visible;
+        ToolbarArea.Visibility = enabled ? Visibility.Collapsed : _state.IsOpen ? Visibility.Visible : Visibility.Collapsed;
+        TitleDragArea.Visibility = NavigationRail.Visibility = enabled ? Visibility.Collapsed : Visibility.Visible;
+        BodyNavigationColumn.Width = new GridLength(enabled ? 0 : 64);
         Root.RowDefinitions[0].Height = new GridLength(enabled ? 0 : 48);
         Notices.Visibility = enabled ? Visibility.Collapsed : Visibility.Visible;
-        Root.RowDefinitions[4].Height = new GridLength(enabled ? 0 : 32); UpdateSidebar();
+        Root.RowDefinitions[2].Height = new GridLength(enabled ? 0 : 30); UpdateSidebar();
     }
     private ContentDialog NewDialog(string title, object content, string primary, string close) => new()
     { XamlRoot = Root.XamlRoot, RequestedTheme = Root.ActualTheme, Title = title, Content = content, PrimaryButtonText = primary, CloseButtonText = close, DefaultButton = ContentDialogButton.Primary };
@@ -181,7 +183,7 @@ public sealed partial class MainWindow
     private void Root_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         if (!_initialized) return;
-        UpdateSidebar(); var compact = e.NewSize.Width < 600;
+        UpdateSidebar(); var compact = e.NewSize.Width < 720;
         ZoomInButton.Visibility = ZoomOutButton.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
         PrivacyText.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
     }
@@ -209,6 +211,7 @@ public sealed partial class MainWindow
     private void Save_Click(object sender, RoutedEventArgs e) => _ = RunAsync(SaveCopyAsync);
     private void Print_Click(object sender, RoutedEventArgs e) => _ = RunAsync(PrintAsync);
     private void Close_Click(object sender, RoutedEventArgs e) { if (!_dialogOpen) CloseDocument(); }
+    private void Home_Click(object sender, RoutedEventArgs e) { if (!_dialogOpen && (_state.IsOpen || _busy)) CloseDocument(); }
     private void Previous_Click(object sender, RoutedEventArgs e) => Navigate(_state.Page - 1);
     private void Next_Click(object sender, RoutedEventArgs e) => Navigate(_state.Page + 1);
     private void ZoomIn_Click(object sender, RoutedEventArgs e) => Zoom(1.2);

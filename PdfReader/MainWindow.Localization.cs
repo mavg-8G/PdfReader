@@ -14,6 +14,7 @@ public sealed partial class MainWindow
         _settings.Data.Language = _language;
         Welcome.ApplyLanguage(_language);
 
+        HomeButton.Label = T("Home", "Inicio");
         OpenButton.Label = T("Open PDF", "Abrir PDF");
         FindButton.Label = T("Search", "Buscar");
         OcrButton.Label = T("Read scanned page", "Leer página escaneada");
@@ -27,7 +28,7 @@ public sealed partial class MainWindow
         ActualSizeItem.Text = T("100% · Actual size", "100% · Tamaño real");
         FullscreenMenu.Label = T("Fullscreen · F11", "Pantalla completa · F11");
         PresentationMenu.Label = T("Presentation · F5", "Presentación · F5");
-        HelpMenu.Label = T("Keyboard shortcuts", "Métodos abreviados de teclado");
+        HelpRailButton.Label = T("Keyboard shortcuts", "Métodos abreviados de teclado");
         CloseMenu.Label = T("Close document · Ctrl+W", "Cerrar documento · Ctrl+W");
 
         SearchBox.PlaceholderText = T("Find in document…", "Buscar en el documento…");
@@ -44,6 +45,7 @@ public sealed partial class MainWindow
         Tip(ZoomOutButton, "Zoom out (Ctrl+-)", "Alejar (Ctrl+-)", "Zoom out", "Alejar");
         Tip(ZoomButton, "Zoom and page fitting", "Zoom y ajuste de página", "Zoom and fit options", "Opciones de zoom y ajuste");
         Tip(ZoomInButton, "Zoom in (Ctrl++)", "Acercar (Ctrl++)", "Zoom in", "Acercar");
+        Tip(HomeButton, "Home", "Inicio");
         Tip(OpenButton, "Open PDF (Ctrl+O)", "Abrir PDF (Ctrl+O)");
         Tip(FindButton, "Search document (Ctrl+F)", "Buscar en el documento (Ctrl+F)");
         Tip(OcrButton, "Read text from the current scanned page (OCR)", "Leer texto de la página escaneada actual (OCR)");
@@ -51,6 +53,7 @@ public sealed partial class MainWindow
         Tip(SaveButton, "Save a copy (Ctrl+S)", "Guardar una copia (Ctrl+S)");
         Tip(PrintButton, "Print (Ctrl+P)", "Imprimir (Ctrl+P)");
         Tip(SettingsButton, "Settings", "Configuración");
+        Tip(HelpRailButton, "Keyboard shortcuts", "Métodos abreviados de teclado");
         Tip(FindPreviousButton, "Previous match (Shift+Enter)", "Coincidencia anterior (Mayús+Enter)", "Previous match", "Coincidencia anterior");
         Tip(FindNextButton, "Next match (Enter)", "Coincidencia siguiente (Enter)", "Next match", "Coincidencia siguiente");
         Tip(CloseSearchButton, "Close search", "Cerrar búsqueda");

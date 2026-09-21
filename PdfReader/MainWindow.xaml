@@ -5,7 +5,7 @@
     xmlns:views="using:PdfReader.Views"
     Title="Folio">
     <Window.SystemBackdrop>
-        <MicaBackdrop Kind="BaseAlt"/>
+        <MicaBackdrop Kind="Base"/>
     </Window.SystemBackdrop>
 
     <Grid
@@ -20,21 +20,26 @@
             <Style x:Key="QuietButton" TargetType="Button">
                 <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="BorderThickness" Value="0"/>
-                <Setter Property="CornerRadius" Value="6"/>
+                <Setter Property="CornerRadius" Value="7"/>
                 <Setter Property="MinWidth" Value="36"/>
                 <Setter Property="MinHeight" Value="36"/>
                 <Setter Property="Padding" Value="9"/>
             </Style>
+            <Style x:Key="RailButton" TargetType="AppBarButton">
+                <Setter Property="Width" Value="48"/>
+                <Setter Property="Height" Value="48"/>
+                <Setter Property="CornerRadius" Value="8"/>
+                <Setter Property="LabelPosition" Value="Collapsed"/>
+                <Setter Property="HorizontalAlignment" Value="Center"/>
+            </Style>
         </Grid.Resources>
         <Grid.RowDefinitions>
             <RowDefinition Height="48"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="30"/>
         </Grid.RowDefinitions>
 
-        <Grid x:Name="TitleDragArea" Margin="16,0,138,0" ColumnSpacing="12">
+        <Grid x:Name="TitleDragArea" Margin="14,0,138,0" ColumnSpacing="12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
@@ -54,121 +59,153 @@
                 TextTrimming="CharacterEllipsis"/>
         </Grid>
 
-        <Grid
-            x:Name="ToolbarArea"
-            Grid.Row="1"
-            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
-            BorderThickness="0,1,0,1"
-            Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}">
-            <CommandBar
-                x:Name="Toolbar"
-                DefaultLabelPosition="Collapsed"
-                IsDynamicOverflowEnabled="True"
-                HorizontalContentAlignment="Stretch"
-                Background="Transparent"
-                Padding="12,6">
-                <CommandBar.Content>
-                    <UserControl x:Name="NavigationControls" IsEnabled="False">
-                        <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="2">
-                            <StackPanel Orientation="Horizontal" Spacing="1" VerticalAlignment="Center">
-                                <Button x:Name="SidebarButton" Click="Sidebar_Click" Style="{StaticResource QuietButton}"><FontIcon Glyph="&#xE8F1;" FontSize="16"/></Button>
-                                <Button x:Name="PreviousButton" Click="Previous_Click" Style="{StaticResource QuietButton}"><FontIcon Glyph="&#xE76B;" FontSize="12"/></Button>
-                                <TextBox x:Name="PageBox" Width="46" MinWidth="46" MinHeight="34" Text="1" TextAlignment="Center" KeyDown="PageBox_KeyDown" LostFocus="PageBox_LostFocus"/>
-                                <TextBlock x:Name="PageCountText" Text="/ 0" MinWidth="32" Margin="3,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12"/>
-                                <Button x:Name="NextButton" Click="Next_Click" Style="{StaticResource QuietButton}"><FontIcon Glyph="&#xE76C;" FontSize="12"/></Button>
-                                <Border Width="1" Height="20" Margin="6,0" Background="{ThemeResource DividerStrokeColorDefaultBrush}"/>
-                                <Button x:Name="ZoomOutButton" Click="ZoomOut_Click" Style="{StaticResource QuietButton}"><FontIcon Glyph="&#xE738;" FontSize="14"/></Button>
-                                <Button x:Name="ZoomButton" Content="100%" MinWidth="64" Style="{StaticResource QuietButton}">
-                                    <Button.Flyout>
-                                        <MenuFlyout>
-                                            <MenuFlyoutItem x:Name="ScaleWidthItem" Text="Fit to width" Tag="page-width" Click="Scale_Click"/>
-                                            <MenuFlyoutItem x:Name="ScalePageItem" Text="Fit to page" Tag="page-fit" Click="Scale_Click"/>
-                                            <MenuFlyoutSeparator/>
-                                            <MenuFlyoutItem Text="50%" Tag="0.5" Click="Scale_Click"/>
-                                            <MenuFlyoutItem Text="75%" Tag="0.75" Click="Scale_Click"/>
-                                            <MenuFlyoutItem x:Name="ActualSizeItem" Text="100% · Actual size" Tag="1" Click="Scale_Click"/>
-                                            <MenuFlyoutItem Text="150%" Tag="1.5" Click="Scale_Click"/>
-                                            <MenuFlyoutItem Text="200%" Tag="2" Click="Scale_Click"/>
-                                            <MenuFlyoutItem Text="400%" Tag="4" Click="Scale_Click"/>
-                                        </MenuFlyout>
-                                    </Button.Flyout>
-                                </Button>
-                                <Button x:Name="ZoomInButton" Click="ZoomIn_Click" Style="{StaticResource QuietButton}"><FontIcon Glyph="&#xE710;" FontSize="14"/></Button>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="BodyNavigationColumn" Width="64"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border
+                x:Name="NavigationRail"
+                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                BorderThickness="0,1,1,0"
+                Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}">
+                <Grid Margin="0,8">
+                    <StackPanel Spacing="4">
+                        <AppBarButton x:Name="HomeButton" Icon="Home" Label="Home" Click="Home_Click" Style="{StaticResource RailButton}"/>
+                        <AppBarButton x:Name="OpenButton" Icon="OpenFile" Label="Open PDF" Click="Open_Click" Style="{StaticResource RailButton}"/>
+                    </StackPanel>
+                    <StackPanel VerticalAlignment="Bottom" Spacing="4">
+                        <AppBarButton x:Name="HelpRailButton" Icon="Help" Label="Keyboard shortcuts" Click="Help_Click" Style="{StaticResource RailButton}"/>
+                        <AppBarButton x:Name="SettingsButton" Icon="Setting" Label="Settings" Click="Settings_Click" Style="{StaticResource RailButton}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Column="1" x:Name="Workspace">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Border
+                    x:Name="ToolbarArea"
+                    Visibility="Collapsed"
+                    Margin="12,10,12,8"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                    <CommandBar
+                        x:Name="Toolbar"
+                        DefaultLabelPosition="Collapsed"
+                        IsDynamicOverflowEnabled="True"
+                        HorizontalContentAlignment="Stretch"
+                        Background="Transparent"
+                        Padding="4,2">
+                        <CommandBar.Content>
+                            <UserControl x:Name="NavigationControls" IsEnabled="False">
+                                <StackPanel Orientation="Horizontal" Spacing="1" VerticalAlignment="Center">
+                                    <Button x:Name="SidebarButton" Click="Sidebar_Click" Style="{StaticResource QuietButton}"><FontIcon Glyph="&#xE8F1;" FontSize="16"/></Button>
+                                    <Border Width="1" Height="20" Margin="3,0,5,0" Background="{ThemeResource DividerStrokeColorDefaultBrush}"/>
+                                    <Button x:Name="PreviousButton" Click="Previous_Click" Style="{StaticResource QuietButton}"><FontIcon Glyph="&#xE76B;" FontSize="12"/></Button>
+                                    <TextBox x:Name="PageBox" Width="46" MinWidth="46" MinHeight="34" Text="1" TextAlignment="Center" KeyDown="PageBox_KeyDown" LostFocus="PageBox_LostFocus"/>
+                                    <TextBlock x:Name="PageCountText" Text="/ 0" MinWidth="32" Margin="3,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12"/>
+                                    <Button x:Name="NextButton" Click="Next_Click" Style="{StaticResource QuietButton}"><FontIcon Glyph="&#xE76C;" FontSize="12"/></Button>
+                                    <Border Width="1" Height="20" Margin="6,0" Background="{ThemeResource DividerStrokeColorDefaultBrush}"/>
+                                    <Button x:Name="ZoomOutButton" Click="ZoomOut_Click" Style="{StaticResource QuietButton}"><FontIcon Glyph="&#xE738;" FontSize="14"/></Button>
+                                    <Button x:Name="ZoomButton" Content="100%" MinWidth="64" Style="{StaticResource QuietButton}">
+                                        <Button.Flyout>
+                                            <MenuFlyout>
+                                                <MenuFlyoutItem x:Name="ScaleWidthItem" Text="Fit to width" Tag="page-width" Click="Scale_Click"/>
+                                                <MenuFlyoutItem x:Name="ScalePageItem" Text="Fit to page" Tag="page-fit" Click="Scale_Click"/>
+                                                <MenuFlyoutSeparator/>
+                                                <MenuFlyoutItem Text="50%" Tag="0.5" Click="Scale_Click"/>
+                                                <MenuFlyoutItem Text="75%" Tag="0.75" Click="Scale_Click"/>
+                                                <MenuFlyoutItem x:Name="ActualSizeItem" Text="100% · Actual size" Tag="1" Click="Scale_Click"/>
+                                                <MenuFlyoutItem Text="150%" Tag="1.5" Click="Scale_Click"/>
+                                                <MenuFlyoutItem Text="200%" Tag="2" Click="Scale_Click"/>
+                                                <MenuFlyoutItem Text="400%" Tag="4" Click="Scale_Click"/>
+                                            </MenuFlyout>
+                                        </Button.Flyout>
+                                    </Button>
+                                    <Button x:Name="ZoomInButton" Click="ZoomIn_Click" Style="{StaticResource QuietButton}"><FontIcon Glyph="&#xE710;" FontSize="14"/></Button>
+                                </StackPanel>
+                            </UserControl>
+                        </CommandBar.Content>
+                        <AppBarButton x:Name="FindButton" Icon="Find" Label="Search" Click="Find_Click" IsEnabled="False"/>
+                        <AppBarButton x:Name="OcrButton" Icon="Scan" Label="Read scanned page" Click="Ocr_Click" IsEnabled="False"/>
+                        <AppBarButton x:Name="RotateButton" Icon="Rotate" Label="Rotate clockwise" Click="Rotate_Click" IsEnabled="False"/>
+                        <AppBarButton x:Name="SaveButton" Icon="Save" Label="Save a copy" Click="Save_Click" IsEnabled="False"/>
+                        <AppBarButton x:Name="PrintButton" Icon="Print" Label="Print" Click="Print_Click" IsEnabled="False"/>
+                        <CommandBar.SecondaryCommands>
+                            <AppBarButton x:Name="FitWidthMenu" Label="Fit to width" Click="FitWidth_Click"/>
+                            <AppBarButton x:Name="FitPageMenu" Label="Fit to page" Click="FitPage_Click"/>
+                            <AppBarButton x:Name="FullscreenMenu" Label="Fullscreen · F11" Click="Fullscreen_Click"/>
+                            <AppBarButton x:Name="PresentationMenu" Label="Presentation · F5" Click="Presentation_Click"/>
+                            <AppBarSeparator/>
+                            <AppBarButton x:Name="CloseMenu" Label="Close document · Ctrl+W" Click="Close_Click"/>
+                        </CommandBar.SecondaryCommands>
+                    </CommandBar>
+                </Border>
+
+                <StackPanel Grid.Row="1" x:Name="Notices">
+                    <Border x:Name="SearchPanel" Visibility="Collapsed" Margin="12,0,12,8" Padding="12" CornerRadius="10" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                            <TextBox x:Name="SearchBox" PlaceholderText="Find in document…" MaxLength="500" TextChanged="SearchBox_TextChanged" KeyDown="SearchBox_KeyDown"/>
+                            <Button x:Name="FindPreviousButton" Grid.Column="1" Click="FindPrevious_Click" Style="{StaticResource QuietButton}"><FontIcon Glyph="&#xE70E;" FontSize="12"/></Button>
+                            <Button x:Name="FindNextButton" Grid.Column="2" Click="FindNext_Click" Style="{StaticResource QuietButton}"><FontIcon Glyph="&#xE70D;" FontSize="12"/></Button>
+                            <Button x:Name="CloseSearchButton" Grid.Column="3" Click="CloseSearch_Click" Style="{StaticResource QuietButton}"><FontIcon Glyph="&#xE711;" FontSize="12"/></Button>
+                            <StackPanel Grid.Row="1" Grid.ColumnSpan="4" Orientation="Horizontal" Spacing="20" Margin="2,6,0,0">
+                                <CheckBox x:Name="MatchCaseBox" Content="Match case" FontSize="12" Checked="MatchCase_Changed" Unchecked="MatchCase_Changed" MinHeight="32"/>
+                                <TextBlock x:Name="SearchResultText" Text="Search selectable text in this PDF" FontSize="12" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" AutomationProperties.LiveSetting="Polite"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    <InfoBar x:Name="MessageBar" Margin="12,0,12,8" IsOpen="False" IsClosable="True" Severity="Error"/>
+                    <ProgressBar x:Name="LoadingBar" Visibility="Collapsed" IsIndeterminate="True" Height="3"/>
+                </StackPanel>
+
+                <Grid Grid.Row="2">
+                    <SplitView x:Name="DocumentSplit" Visibility="Collapsed" OpenPaneLength="216" DisplayMode="Inline" IsPaneOpen="False" PaneBackground="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}">
+                        <SplitView.Pane>
+                            <Grid BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,1,0">
+                                <Grid.RowDefinitions><RowDefinition Height="52"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <TextBlock x:Name="PagesHeading" Text="PAGES" FontSize="11" FontWeight="SemiBold" CharacterSpacing="120" Margin="20,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <ListView x:Name="Thumbnails" Grid.Row="1" SelectionMode="Single" SelectionChanged="Thumbnails_SelectionChanged" ContainerContentChanging="Thumbnails_ContainerContentChanging" Padding="12,0,12,12" HorizontalContentAlignment="Stretch">
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Padding="10" Spacing="8" HorizontalAlignment="Center" AutomationProperties.Name="{Binding Label}">
+                                                <Border Width="128" Height="166" Background="White" BorderBrush="#18000000" BorderThickness="1" CornerRadius="5">
+                                                    <Image Source="{Binding Image}" Stretch="Uniform" AutomationProperties.AccessibilityView="Raw"/>
+                                                </Border>
+                                                <TextBlock Text="{Binding Page}" FontSize="12" HorizontalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                            </Grid>
+                        </SplitView.Pane>
+                        <WebView2 x:Name="DocumentView" DefaultBackgroundColor="Transparent"/>
+                    </SplitView>
+                    <views:WelcomeView x:Name="Welcome" Background="Transparent"/>
+                    <Grid x:Name="BusyOverlay" Background="{ThemeResource SmokeFillColorDefaultBrush}" Visibility="Collapsed">
+                        <Border Background="{ThemeResource SolidBackgroundFillColorBaseBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="14" Padding="28" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <StackPanel Spacing="16" MaxWidth="320">
+                                <ProgressRing IsActive="True" Width="36" Height="36" HorizontalAlignment="Center"/>
+                                <TextBlock x:Name="BusyText" Text="Opening your document…" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+                                <Button x:Name="CancelBusyButton" Content="Cancel" HorizontalAlignment="Center" Click="Cancel_Click"/>
                             </StackPanel>
                         </Border>
-                    </UserControl>
-                </CommandBar.Content>
-                <AppBarButton x:Name="OpenButton" Icon="OpenFile" Label="Open PDF" Click="Open_Click"/>
-                <AppBarButton x:Name="FindButton" Icon="Find" Label="Search" Click="Find_Click" IsEnabled="False"/>
-                <AppBarButton x:Name="OcrButton" Icon="Scan" Label="Read scanned page" Click="Ocr_Click" IsEnabled="False"/>
-                <AppBarButton x:Name="RotateButton" Icon="Rotate" Label="Rotate clockwise" Click="Rotate_Click" IsEnabled="False"/>
-                <AppBarButton x:Name="SaveButton" Icon="Save" Label="Save a copy" Click="Save_Click" IsEnabled="False"/>
-                <AppBarButton x:Name="PrintButton" Icon="Print" Label="Print" Click="Print_Click" IsEnabled="False"/>
-                <AppBarButton x:Name="SettingsButton" Icon="Setting" Label="Settings" Click="Settings_Click"/>
-                <CommandBar.SecondaryCommands>
-                    <AppBarButton x:Name="FitWidthMenu" Label="Fit to width" Click="FitWidth_Click"/>
-                    <AppBarButton x:Name="FitPageMenu" Label="Fit to page" Click="FitPage_Click"/>
-                    <AppBarButton x:Name="FullscreenMenu" Label="Fullscreen · F11" Click="Fullscreen_Click"/>
-                    <AppBarButton x:Name="PresentationMenu" Label="Presentation · F5" Click="Presentation_Click"/>
-                    <AppBarSeparator/>
-                    <AppBarButton x:Name="HelpMenu" Label="Keyboard shortcuts" Click="Help_Click"/>
-                    <AppBarButton x:Name="CloseMenu" Label="Close document · Ctrl+W" Click="Close_Click"/>
-                </CommandBar.SecondaryCommands>
-            </CommandBar>
-        </Grid>
-
-        <StackPanel Grid.Row="2" x:Name="Notices">
-            <Grid x:Name="SearchPanel" Visibility="Collapsed" Padding="16,10" ColumnSpacing="8" Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                <TextBox x:Name="SearchBox" PlaceholderText="Find in document…" MaxLength="500" TextChanged="SearchBox_TextChanged" KeyDown="SearchBox_KeyDown"/>
-                <Button x:Name="FindPreviousButton" Grid.Column="1" Click="FindPrevious_Click" Style="{StaticResource QuietButton}"><FontIcon Glyph="&#xE70E;" FontSize="12"/></Button>
-                <Button x:Name="FindNextButton" Grid.Column="2" Click="FindNext_Click" Style="{StaticResource QuietButton}"><FontIcon Glyph="&#xE70D;" FontSize="12"/></Button>
-                <Button x:Name="CloseSearchButton" Grid.Column="3" Click="CloseSearch_Click" Style="{StaticResource QuietButton}"><FontIcon Glyph="&#xE711;" FontSize="12"/></Button>
-                <StackPanel Grid.Row="1" Grid.ColumnSpan="4" Orientation="Horizontal" Spacing="20" Margin="2,6,0,0">
-                    <CheckBox x:Name="MatchCaseBox" Content="Match case" FontSize="12" Checked="MatchCase_Changed" Unchecked="MatchCase_Changed" MinHeight="32"/>
-                    <TextBlock x:Name="SearchResultText" Text="Search selectable text in this PDF" FontSize="12" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" AutomationProperties.LiveSetting="Polite"/>
-                </StackPanel>
-            </Grid>
-            <InfoBar x:Name="MessageBar" IsOpen="False" IsClosable="True" Severity="Error"/>
-            <ProgressBar x:Name="LoadingBar" Visibility="Collapsed" IsIndeterminate="True" Height="3"/>
-        </StackPanel>
-
-        <Grid Grid.Row="3">
-            <SplitView x:Name="DocumentSplit" Visibility="Collapsed" OpenPaneLength="216" DisplayMode="Inline" IsPaneOpen="False" PaneBackground="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}">
-                <SplitView.Pane>
-                    <Grid BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,1,0">
-                        <Grid.RowDefinitions><RowDefinition Height="52"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                        <TextBlock x:Name="PagesHeading" Text="PAGES" FontSize="11" FontWeight="SemiBold" CharacterSpacing="120" Margin="20,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                        <ListView x:Name="Thumbnails" Grid.Row="1" SelectionMode="Single" SelectionChanged="Thumbnails_SelectionChanged" ContainerContentChanging="Thumbnails_ContainerContentChanging" Padding="12,0,12,12" HorizontalContentAlignment="Stretch">
-                            <ListView.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Padding="10" Spacing="8" HorizontalAlignment="Center" AutomationProperties.Name="{Binding Label}">
-                                        <Border Width="128" Height="166" Background="White" BorderBrush="#18000000" BorderThickness="1" CornerRadius="4">
-                                            <Image Source="{Binding Image}" Stretch="Uniform" AutomationProperties.AccessibilityView="Raw"/>
-                                        </Border>
-                                        <TextBlock Text="{Binding Page}" FontSize="12" HorizontalAlignment="Center"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
                     </Grid>
-                </SplitView.Pane>
-                <WebView2 x:Name="DocumentView" DefaultBackgroundColor="Transparent"/>
-            </SplitView>
-            <views:WelcomeView x:Name="Welcome" Background="Transparent"/>
-            <Grid x:Name="BusyOverlay" Background="{ThemeResource SmokeFillColorDefaultBrush}" Visibility="Collapsed">
-                <Border Background="{ThemeResource SolidBackgroundFillColorBaseBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="28" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <StackPanel Spacing="16" MaxWidth="320">
-                        <ProgressRing IsActive="True" Width="36" Height="36" HorizontalAlignment="Center"/>
-                        <TextBlock x:Name="BusyText" Text="Opening your document…" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
-                        <Button x:Name="CancelBusyButton" Content="Cancel" HorizontalAlignment="Center" Click="Cancel_Click"/>
-                    </StackPanel>
-                </Border>
+                </Grid>
             </Grid>
         </Grid>
 
-        <Grid Grid.Row="4" Padding="14,0" Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}">
+        <Grid Grid.Row="2" Padding="76,0,14,0" Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <TextBlock x:Name="StatusText" Text="Ready" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource TextFillColorSecondaryBrush}" AutomationProperties.LiveSetting="Polite"/>
             <TextBlock x:Name="PrivacyText" Grid.Column="1" Text="ON THIS DEVICE" FontSize="10" CharacterSpacing="80" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>

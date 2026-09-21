@@ -40,7 +40,7 @@ public sealed partial class MainWindow
             _thumbnails.Clear(); _thumbnailCache.Clear(); Thumbnails.ItemsSource = null;
             SearchPanel.Visibility = Visibility.Collapsed; SearchBox.Text = "";
             FileNameText.Text = document.Name; ToolTipService.SetToolTip(FileNameText, document.Path);
-            Title = document.Name + " — Folio"; DocumentSplit.Visibility = Visibility.Visible; Welcome.Visibility = Visibility.Collapsed;
+            Title = document.Name + " — Folio"; ToolbarArea.Visibility = Visibility.Visible; DocumentSplit.Visibility = Visibility.Visible; Welcome.Visibility = Visibility.Collapsed;
             DocumentView.IsTabStop = true; SetBusy(T("Opening your document…", "Abriendo el documento…")); UpdateControls();
             var recent = _settings.Find(document.Key);
             _host.Send(new { type = "open", id = document.Id, url = _host.DocumentUrl, restore = new { page = recent?.Page ?? 1, scale = recent?.Scale ?? "page-width", rotation = recent?.Rotation ?? 0 } });
@@ -184,7 +184,7 @@ public sealed partial class MainWindow
         _host.Send(new { type = "close" });
         var previous = _host.Document; _host.Document = null; previous?.Dispose();
         _state.Reset(); _thumbnails.Clear(); _thumbnailCache.Clear(); Thumbnails.ItemsSource = null;
-        DocumentSplit.IsPaneOpen = false; DocumentSplit.Visibility = Visibility.Collapsed;
+        DocumentSplit.IsPaneOpen = false; DocumentSplit.Visibility = Visibility.Collapsed; ToolbarArea.Visibility = Visibility.Collapsed;
         Welcome.SetRecent(_settings.Data.Recent); Welcome.Visibility = Visibility.Visible; DocumentView.IsTabStop = false;
         FileNameText.Text = T("PDF reader", "Lector de PDF"); Title = "Folio"; ToolTipService.SetToolTip(FileNameText, null);
         SearchPanel.Visibility = Visibility.Collapsed;

@@ -10,87 +10,130 @@
         VerticalScrollBarVisibility="Auto"
         HorizontalContentAlignment="Stretch"
         SizeChanged="Scroll_SizeChanged">
-        <Grid x:Name="WelcomeContent" MaxWidth="920" Margin="36,48,36,36" HorizontalAlignment="Center">
-            <StackPanel Spacing="30">
-                <StackPanel Spacing="8">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE7C3;" FontSize="13" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
-                        <TextBlock x:Name="EyebrowText" Text="PDF READER FOR WINDOWS" FontSize="11" FontWeight="SemiBold" CharacterSpacing="100" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
-                    </StackPanel>
-                    <TextBlock x:Name="WelcomeHeading" Text="Welcome to Folio" FontSize="34" FontWeight="SemiBold" CharacterSpacing="-20" TextWrapping="Wrap"/>
-                    <TextBlock x:Name="WelcomeSubtitle" Text="Open a document and keep reading right where you left off." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" FontSize="15"/>
-                </StackPanel>
+        <Grid x:Name="WelcomeContent" MaxWidth="1160" Margin="36" HorizontalAlignment="Center">
+            <Grid x:Name="DashboardGrid" ColumnSpacing="20" RowSpacing="20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.12*"/>
+                    <ColumnDefinition Width=".88*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="0"/>
+                </Grid.RowDefinitions>
 
                 <Border
-                    x:Name="OpenCard"
-                    CornerRadius="16"
+                    x:Name="HeroCard"
+                    MinHeight="520"
+                    Padding="36"
+                    CornerRadius="18"
                     BorderThickness="1"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    Padding="28">
-                    <Grid x:Name="OpenCardGrid" ColumnSpacing="22" RowSpacing="20">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                        <Border x:Name="DocumentArtwork" Width="64" Height="64" CornerRadius="14" Background="{ThemeResource AccentFillColorTertiaryBrush}" VerticalAlignment="Top">
-                            <FontIcon Glyph="&#xE8A5;" FontSize="28" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
-                        </Border>
-                        <StackPanel x:Name="OpenCardText" Grid.Column="1" Spacing="6" VerticalAlignment="Center">
-                            <TextBlock x:Name="OpenHeading" Text="Open a PDF" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                            <TextBlock x:Name="OpenDescription" Text="Choose a document from your device, or drag one anywhere into this window." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" FontSize="14"/>
-                        </StackPanel>
-                        <StackPanel x:Name="OpenActions" Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="12">
-                            <Button x:Name="OpenDocumentButton" Click="Open_Click" Style="{StaticResource AccentButtonStyle}" Padding="18,10">
-                                <StackPanel Orientation="Horizontal" Spacing="9"><FontIcon Glyph="&#xE8E5;" FontSize="15"/><TextBlock x:Name="ChooseDocumentText" Text="Choose PDF"/></StackPanel>
-                            </Button>
-                            <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}" CornerRadius="5" Padding="8,4" VerticalAlignment="Center">
-                                <TextBlock x:Name="OpenShortcut" Text="Ctrl + O" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11"/>
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Spacing="14">
+                            <Border x:Name="DocumentArtwork" Width="72" Height="72" CornerRadius="18" Background="{ThemeResource AccentFillColorTertiaryBrush}" HorizontalAlignment="Left">
+                                <FontIcon Glyph="&#xE8A5;" FontSize="31" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
                             </Border>
+                            <StackPanel Spacing="7">
+                                <StackPanel Orientation="Horizontal" Spacing="7">
+                                    <FontIcon Glyph="&#xE7C3;" FontSize="12" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                    <TextBlock x:Name="EyebrowText" Text="PDF READER FOR WINDOWS" FontSize="11" FontWeight="SemiBold" CharacterSpacing="95" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                </StackPanel>
+                                <TextBlock x:Name="WelcomeHeading" Text="Your documents, without the clutter" FontSize="38" FontWeight="SemiBold" CharacterSpacing="-25" TextWrapping="Wrap"/>
+                                <TextBlock x:Name="WelcomeSubtitle" Text="A focused, private place to read PDFs on Windows." MaxWidth="520" HorizontalAlignment="Left" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" FontSize="16" LineHeight="24"/>
+                            </StackPanel>
                         </StackPanel>
+
+                        <StackPanel Grid.Row="1" VerticalAlignment="Center" Spacing="18">
+                            <StackPanel Spacing="5">
+                                <TextBlock x:Name="OpenHeading" Text="Start reading" FontSize="21" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="OpenDescription" Text="Choose a PDF from your device. You can also drag and drop a file into this window." MaxWidth="520" HorizontalAlignment="Left" TextWrapping="Wrap" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <Button x:Name="OpenDocumentButton" Click="Open_Click" Style="{StaticResource AccentButtonStyle}" Padding="20,11">
+                                    <StackPanel Orientation="Horizontal" Spacing="9">
+                                        <FontIcon Glyph="&#xE8E5;" FontSize="15"/>
+                                        <TextBlock x:Name="ChooseDocumentText" Text="Open PDF"/>
+                                    </StackPanel>
+                                </Button>
+                                <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="9,5" VerticalAlignment="Center">
+                                    <TextBlock x:Name="OpenShortcut" Text="Ctrl + O" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11"/>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <Grid Grid.Row="2" ColumnSpacing="10">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Border Width="36" Height="36" CornerRadius="10" Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                                <FontIcon Glyph="&#xE72E;" FontSize="14"/>
+                            </Border>
+                            <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                                <TextBlock x:Name="PrivacyMessage" Text="Private by design" FontSize="12" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="DropHintText" Text="Files stay on this device and can be dropped anywhere in Folio." TextWrapping="Wrap" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                        </Grid>
                     </Grid>
                 </Border>
 
-                <StackPanel Spacing="12">
-                    <Grid ColumnSpacing="12">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                        <StackPanel Spacing="3">
-                            <TextBlock x:Name="RecentHeading" Text="Recent documents" FontSize="18" FontWeight="SemiBold"/>
-                            <TextBlock x:Name="RecentDescription" Text="Continue from your last page." FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                        </StackPanel>
-                        <Button x:Name="ClearButton" Grid.Column="1" Content="Clear history" VerticalAlignment="Center" Click="Clear_Click" Background="Transparent" BorderThickness="0" FontSize="12"/>
-                    </Grid>
-                    <Border x:Name="EmptyRecents" BorderThickness="1" CornerRadius="12" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" Padding="22">
-                        <StackPanel Orientation="Horizontal" Spacing="14">
-                            <Border Width="36" Height="36" CornerRadius="18" Background="{ThemeResource SubtleFillColorSecondaryBrush}"><FontIcon Glyph="&#xE81C;" FontSize="15"/></Border>
-                            <StackPanel Spacing="4" VerticalAlignment="Center">
-                                <TextBlock x:Name="EmptyHeading" Text="No recent documents" FontWeight="SemiBold"/>
-                                <TextBlock x:Name="EmptyDescription" Text="PDFs you open will appear here with their last page remembered." TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13"/>
+                <Border
+                    x:Name="RecentPanel"
+                    Grid.Column="1"
+                    MinHeight="520"
+                    Padding="22"
+                    CornerRadius="18"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    Background="{ThemeResource LayerFillColorDefaultBrush}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Spacing="3">
+                                <TextBlock x:Name="RecentHeading" Text="Recent files" FontSize="20" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="RecentDescription" Text="Continue where you left off." FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
-                        </StackPanel>
-                    </Border>
-                    <Border x:Name="RecentCard" BorderThickness="1" CornerRadius="12" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
-                        <ListView x:Name="RecentList" IsItemClickEnabled="True" ItemClick="Recent_Click" SelectionMode="None" MaxHeight="320" HorizontalContentAlignment="Stretch">
-                            <ListView.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid Padding="10,11" ColumnSpacing="14">
-                                        <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/></Grid.ColumnDefinitions>
-                                        <Border Width="40" Height="40" CornerRadius="8" Background="{ThemeResource AccentFillColorTertiaryBrush}"><FontIcon Glyph="&#xE8A5;" FontSize="18" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/></Border>
-                                        <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Text="{Binding Path}" TextTrimming="CharacterEllipsis" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                        </StackPanel>
-                                        <FontIcon Grid.Column="2" Glyph="&#xE76C;" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                    </Grid>
-                                </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
-                    </Border>
-                </StackPanel>
+                            <Button x:Name="ClearButton" Grid.Column="1" Content="Clear" VerticalAlignment="Center" Click="Clear_Click" Background="Transparent" BorderThickness="0" FontSize="12"/>
+                        </Grid>
 
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xE72E;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                    <TextBlock x:Name="PrivacyMessage" Text="Private by design. Your PDFs stay on this device." TextWrapping="Wrap" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                </StackPanel>
-            </StackPanel>
+                        <Grid Grid.Row="1" Margin="0,18,0,0">
+                            <StackPanel x:Name="EmptyRecents" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10" MaxWidth="250">
+                                <Border Width="52" Height="52" CornerRadius="26" Background="{ThemeResource SubtleFillColorSecondaryBrush}" HorizontalAlignment="Center">
+                                    <FontIcon Glyph="&#xE81C;" FontSize="21"/>
+                                </Border>
+                                <TextBlock x:Name="EmptyHeading" Text="Nothing here yet" FontWeight="SemiBold" FontSize="15" HorizontalAlignment="Center"/>
+                                <TextBlock x:Name="EmptyDescription" Text="Documents you open will appear here with their last page remembered." TextAlignment="Center" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12"/>
+                            </StackPanel>
+
+                            <ListView x:Name="RecentList" IsItemClickEnabled="True" ItemClick="Recent_Click" SelectionMode="None" HorizontalContentAlignment="Stretch">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Padding="8,10" ColumnSpacing="12">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/><ColumnDefinition Width="22"/></Grid.ColumnDefinitions>
+                                            <Border Width="40" Height="40" CornerRadius="9" Background="{ThemeResource AccentFillColorTertiaryBrush}">
+                                                <FontIcon Glyph="&#xE8A5;" FontSize="18" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Path}" TextTrimming="CharacterEllipsis" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                            </StackPanel>
+                                            <FontIcon Grid.Column="2" Glyph="&#xE76C;" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
     </ScrollViewer>
 </UserControl>
