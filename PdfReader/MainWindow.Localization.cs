@@ -14,29 +14,27 @@ public sealed partial class MainWindow
         _settings.Data.Language = _language;
         Welcome.ApplyLanguage(_language);
 
-        HomeButton.Label = T("Home", "Inicio");
         OpenButton.Label = T("Open PDF", "Abrir PDF");
         FindButton.Label = T("Search", "Buscar");
+        AnnotateButton.Label = T("Annotate", "Anotar");
         OcrButton.Label = T("Read scanned page", "Leer página escaneada");
         RotateButton.Label = T("Rotate clockwise", "Girar a la derecha");
         SaveButton.Label = T("Save a copy", "Guardar una copia");
         PrintButton.Label = T("Print", "Imprimir");
-        SettingsButton.Label = T("Settings", "Configuración");
 
         ScaleWidthItem.Text = FitWidthMenu.Label = T("Fit to width", "Ajustar al ancho");
         ScalePageItem.Text = FitPageMenu.Label = T("Fit to page", "Ajustar a la página");
         ActualSizeItem.Text = T("100% · Actual size", "100% · Tamaño real");
-        FullscreenMenu.Label = T("Fullscreen · F11", "Pantalla completa · F11");
-        PresentationMenu.Label = T("Presentation · F5", "Presentación · F5");
-        HelpRailButton.Label = T("Keyboard shortcuts", "Métodos abreviados de teclado");
-        CloseMenu.Label = T("Close document · Ctrl+W", "Cerrar documento · Ctrl+W");
+        FullscreenMenu.Label = T("Fullscreen", "Pantalla completa");
+        PresentationMenu.Label = T("Presentation", "Presentación");
+        CloseMenu.Label = T("Close document", "Cerrar documento");
 
         SearchBox.PlaceholderText = T("Find in document…", "Buscar en el documento…");
-        MatchCaseBox.Content = T("Match case", "Distinguir mayúsculas");
+        Tip(MatchCaseBox, "Match case", "Distinguir mayúsculas");
         SearchResultText.Text = T("Search selectable text in this PDF", "Busca texto seleccionable en este PDF");
-        PagesHeading.Text = T("PAGES", "PÁGINAS");
+        PagesHeading.Text = T("Pages", "Páginas");
         CancelBusyButton.Content = T("Cancel", "Cancelar");
-        PrivacyText.Text = T("ON THIS DEVICE", "EN ESTE DISPOSITIVO");
+        PrivacyText.Text = T("On this device", "En este dispositivo");
 
         Tip(SidebarButton, "Page thumbnails", "Miniaturas de páginas", "Toggle page thumbnails", "Mostrar u ocultar miniaturas");
         Tip(PreviousButton, "Previous page (Page Up)", "Página anterior (Re Pág)", "Previous page", "Página anterior");
@@ -45,15 +43,15 @@ public sealed partial class MainWindow
         Tip(ZoomOutButton, "Zoom out (Ctrl+-)", "Alejar (Ctrl+-)", "Zoom out", "Alejar");
         Tip(ZoomButton, "Zoom and page fitting", "Zoom y ajuste de página", "Zoom and fit options", "Opciones de zoom y ajuste");
         Tip(ZoomInButton, "Zoom in (Ctrl++)", "Acercar (Ctrl++)", "Zoom in", "Acercar");
-        Tip(HomeButton, "Home", "Inicio");
         Tip(OpenButton, "Open PDF (Ctrl+O)", "Abrir PDF (Ctrl+O)");
         Tip(FindButton, "Search document (Ctrl+F)", "Buscar en el documento (Ctrl+F)");
+        Tip(AnnotateButton, "Add notes, highlights, and drawings", "Agregar notas, resaltados y dibujos");
         Tip(OcrButton, "Read text from the current scanned page (OCR)", "Leer texto de la página escaneada actual (OCR)");
         Tip(RotateButton, "Rotate clockwise (Ctrl+R)", "Girar a la derecha (Ctrl+R)");
         Tip(SaveButton, "Save a copy (Ctrl+S)", "Guardar una copia (Ctrl+S)");
         Tip(PrintButton, "Print (Ctrl+P)", "Imprimir (Ctrl+P)");
         Tip(SettingsButton, "Settings", "Configuración");
-        Tip(HelpRailButton, "Keyboard shortcuts", "Métodos abreviados de teclado");
+        Tip(HelpButton, "Keyboard shortcuts", "Métodos abreviados de teclado");
         Tip(FindPreviousButton, "Previous match (Shift+Enter)", "Coincidencia anterior (Mayús+Enter)", "Previous match", "Coincidencia anterior");
         Tip(FindNextButton, "Next match (Enter)", "Coincidencia siguiente (Enter)", "Next match", "Coincidencia siguiente");
         Tip(CloseSearchButton, "Close search", "Cerrar búsqueda");
@@ -65,7 +63,7 @@ public sealed partial class MainWindow
 
         if (!_state.IsOpen)
         {
-            FileNameText.Text = T("PDF reader", "Lector de PDF");
+            AppTitleBar.Subtitle = T("PDF reader", "Lector de PDF");
             if (!_busy) StatusText.Text = T("Ready", "Listo");
         }
         else if (!_busy)

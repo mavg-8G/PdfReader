@@ -16,6 +16,7 @@ public sealed partial class MainWindow : Window
     private readonly DispatcherQueueTimer _saveTimer, _searchTimer, _openTimer;
     private readonly TaskCompletionSource _viewerReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly List<ThumbnailItem> _thumbnails = [];
+    private DocumentMarkupStore? _markupStore;
     private readonly LinkedList<int> _thumbnailCache = [];
     private bool _initialized, _busy, _printing, _syncing, _closing, _closed, _presentation, _fullscreen, _canPrint;
     private bool _dialogOpen, _sidebarWanted = true;
@@ -37,10 +38,11 @@ public sealed partial class MainWindow : Window
         _host.Message += message => _ = RunAsync(() => ReceiveAsync(message));
         _host.Failed += message => { _viewerReady.TrySetException(new InvalidOperationException(message)); ShowError(T("Viewer unavailable", "Visor no disponible"), TranslateKnown(message)); EndBusy(); };
         _host.FileDropped += path => _ = RunAsync(() => OpenDocumentAsync(path));
-        ExtendsContentIntoTitleBar = true; SetTitleBar(TitleDragArea);
+        ExtendsContentIntoTitleBar = true; SetTitleBar(AppTitleBar);
+        AppWindow.TitleBar.PreferredHeightOption = Microsoft.UI.Windowing.TitleBarHeightOption.Tall;
         AppWindow.TitleBar.ButtonBackgroundColor = Colors.Transparent;
         AppWindow.TitleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(1240, 880));
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(1240, 880)); ApplyMinimumSize();
         ApplyTheme(_settings.Data.Theme);
         ApplyLanguage(_language);
         Welcome.SetRecent(_settings.Data.Recent);
@@ -53,6 +55,7 @@ public sealed partial class MainWindow : Window
         Welcome.OpenRequested += () => _ = RunAsync(OpenPickerAsync);
         Welcome.RecentRequested += path => _ = RunAsync(() => OpenDocumentAsync(path));
         Welcome.ClearRequested += () => { _settings.Data.Recent.Clear(); Welcome.SetRecent(_settings.Data.Recent); _ = PersistAsync(); };
+        Welcome.RemoveRequested += path => { _settings.Data.Recent.RemoveAll(r => r.Path == path); Welcome.SetRecent(_settings.Data.Recent); _ = PersistAsync(); };
         Root.ActualThemeChanged += (_, _) => SendTheme();
         AddShortcuts();
         AppWindow.Closing += async (_, args) =>

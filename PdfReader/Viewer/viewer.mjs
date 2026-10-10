@@ -1,6 +1,7 @@
 import * as pdfjs from './vendor/build/pdf.mjs';
 import { clampPage, normalizeScale, classifyError, validatePrintPages } from './policy.mjs';
 import { createOcrPanel } from './ocr-panel.mjs';
+import { createAnnotationPanel } from './annotation-panel.mjs';
 const { PDFViewer, EventBus, PDFLinkService, PDFFindController, ScrollMode } = await import('./vendor/web/pdf_viewer.mjs');
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/build/pdf.worker.mjs', import.meta.url).href;
@@ -11,7 +12,7 @@ linkService.externalLinkEnabled = false;
 const findController = new PDFFindController({ eventBus, linkService });
 const viewer = new PDFViewer({
   container, eventBus, linkService, findController,
-  annotationMode: pdfjs.AnnotationMode.ENABLE,
+  annotationMode: pdfjs.AnnotationMode.ENABLE_FORMS,
   annotationEditorMode: pdfjs.AnnotationEditorType.DISABLE,
   enablePermissions: true, enableAutoLinking: false,
   maxCanvasPixels: 8_000_000, maxCanvasDim: 8192, enableDetailCanvas: false,
@@ -30,6 +31,11 @@ const ocr = createOcrPanel({
     canCopy: !!pdf && (!permissions || permissions.has(pdfjs.PermissionFlag.COPY)), printBusy }),
   focusDocument: () => container.focus()
 });
+const annotations = createAnnotationPanel({
+  getContext: () => ({ rotation: viewer.pagesRotation }),
+  onChange: markup => post('markup', { markup }),
+  focusDocument: () => container.focus()
+});
 function applyLanguage(value) {
   uiLanguage = value === 'es' ? 'es' : 'en';
   const spanish = uiLanguage === 'es';
@@ -42,6 +48,7 @@ function applyLanguage(value) {
   exit.title = spanish ? 'Salir de la presentación (Escape)' : 'Exit presentation (Escape)';
   exit.textContent = spanish ? 'Salir de la presentación · Esc' : 'Exit presentation · Esc';
   ocr.setLanguage(uiLanguage);
+  annotations.setLanguage(uiLanguage);
 }
 
 function reportState() {
@@ -61,12 +68,16 @@ eventBus.on('pagesinit', () => {
 });
 for (const event of ['pagechanging', 'scalechanging', 'rotationchanging']) eventBus.on(event, reportState);
 for (const event of ['pagechanging', 'rotationchanging']) eventBus.on(event, () => ocr.pageChanged());
-eventBus.on('pagerendered', ({ error }) => { if (error) post('warning', { message: 'A page could not be rendered completely. The PDF may contain damaged or unsupported content.' }); });
+eventBus.on('pagerendered', ({ error, source, pageNumber }) => {
+  if (error) post('warning', { message: 'A page could not be rendered completely. The PDF may contain damaged or unsupported content.' });
+  annotations.renderPage(source?.div ?? document.querySelector(`.page[data-page-number="${pageNumber}"]`));
+});
 eventBus.on('updatefindmatchescount', ({ matchesCount }) => post('find', { ...matchesCount, pending: false }));
 eventBus.on('updatefindcontrolstate', ({ state, matchesCount }) => post('find', { ...matchesCount, pending: state === 3, notFound: state === 1 }));
 
 async function closeDocument() {
   ++generation; readyForState = false;
+  annotations.flush(); annotations.reset();
   ocr.hide();
   cancelPrint(); thumbnailQueue = []; thumbnailTask?.cancel(); passwordCallback = null;
   viewer.setDocument(null); linkService.setDocument(null); findController.setDocument(null);
@@ -80,6 +91,7 @@ async function openDocument(command) {
   const current = generation;
   documentId = command.id;
   restore = command.restore ?? {};
+  annotations.setMarkup(command.markup);
   // The host exposes only this random document token. Paths never enter JavaScript.
   if (!/^[a-f0-9]{32}$/.test(documentId)) throw new Error('Invalid document token.');
   const url = new URL(command.url ?? `/document/${documentId}.pdf`, window.location.href);
@@ -107,6 +119,7 @@ async function openDocument(command) {
     if (result.numPages > 100000) throw new Error('This document exceeds the 100,000-page safety limit.');
     pdf = result; permissions = await pdf.getPermissions();
     if (current !== generation) return;
+    annotations.applyFormValues(pdf);
     post('loaded', { pages: pdf.numPages, canPrint: canPrint() });
     linkService.setDocument(pdf);
     viewer.setDocument(pdf);
@@ -189,7 +202,7 @@ window.addEventListener('afterprint', () => { cancelPrint(); post('printClosed')
 function setPresentation(enabled) {
   if (!pdf || enabled === presentation) return;
   presentation = enabled;
-  if (enabled) ocr.hide();
+  if (enabled) { ocr.hide(); annotations.hide(); }
   document.body.classList.toggle('presentation', enabled);
   document.getElementById('exitPresentation').hidden = !enabled;
   if (enabled) { previousScale = viewer.currentScaleValue; viewer.scrollMode = ScrollMode.PAGE; viewer.currentScaleValue = 'page-fit'; }
@@ -210,6 +223,7 @@ async function receive(command) {
   switch (command.type) {
     case 'ocr': ocr.show(); break;
     case 'closeOcr': ocr.hide(); break;
+    case 'annotations': ocr.hide(); annotations.show(); break;
     case 'page': viewer.currentPageNumber = clampPage(command.value, pdf.numPages); break;
     case 'zoom': viewer.currentScaleValue = normalizeScale(command.value); break;
     case 'rotate': viewer.pagesRotation = (viewer.pagesRotation + 90) % 360; break;
@@ -236,6 +250,7 @@ window.chrome?.webview?.addEventListener('message', event => {
 window.addEventListener('keydown', event => {
   const ctrl = event.ctrlKey || event.metaKey, key = event.key.toLowerCase();
   if (event.target.closest('#ocrPanel') && key === 'escape') { event.preventDefault(); ocr.hide(); container.focus(); return; }
+  if (event.target.closest('#annotationPanel') && key === 'escape') { event.preventDefault(); annotations.hide(); container.focus(); return; }
   let action = null;
   if (ctrl) action = ({ o:'open', f:'find', p:'print', s:'save', w:'close', g:'page', '+':'zoomIn', '=':'zoomIn', '-':'zoomOut', '0':'fitPage', '1':'actualSize', '2':'fitWidth', r:'rotate' })[key];
   else action = ({ f11:'fullscreen', f5:'presentation', escape:'escape', f3: event.shiftKey ? 'findPrevious' : 'findNext' })[key];

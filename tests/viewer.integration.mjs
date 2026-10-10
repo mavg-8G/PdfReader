@@ -65,6 +65,22 @@ try{
   await command('find',{query:'nothing-matches-this'});await wait('__messages.filter(m=>m.type==="find").at(-1)?.notFound===true');pass('no-match search state');
   const selected=await evaluate(`(()=>{const span=[...document.querySelectorAll('.textLayer span')].find(s=>s.textContent.includes('Focus'));const range=document.createRange();range.selectNodeContents(span);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);return selection.toString();})()`);
   assert.ok(selected.includes('Focus'));pass('selectable text layer');
+  await command('annotations');await wait('!document.getElementById("annotationPanel").hidden','open annotation panel');
+  await evaluate('document.getElementById("annotationHighlight").click()');
+  await wait('__messages.some(m=>m.type==="markup"&&m.markup.annotations.some(a=>a.type==="highlight"))','save a text highlight');
+  assert.ok(await evaluate('document.querySelectorAll(".folio-highlight").length>0'));pass('add and persist a text highlight without altering the PDF');
+  await evaluate(`(()=>{const page=document.querySelector('.page[data-page-number]'),layer=document.createElement('div'),input=document.createElement('input');layer.className='annotationLayer';input.setAttribute('data-element-id','pdfjs_internal_id_test');layer.append(input);page.append(layer);input.value='Ada';input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  await wait('__messages.filter(m=>m.type==="markup").at(-1)?.markup.formValues.pdfjs_internal_id_test==="Ada"','save a form value');pass('capture PDF form values for sidecar persistence');
+  await command('page',{value:1});await wait('__messages.filter(m=>m.type==="state").at(-1)?.page===1','show an annotation page');
+  await evaluate('document.getElementById("annotationNoteText").value="Remember this";document.getElementById("annotationNote").click()');
+  const annotationPage=await evaluate(`(()=>{const b=document.querySelector('.page[data-page-number="1"]').getBoundingClientRect();return {x:b.left+80,y:b.top+80};})()`);
+  await send('Input.dispatchMouseEvent',{type:'mousePressed',x:annotationPage.x,y:annotationPage.y,button:'left',clickCount:1});await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:annotationPage.x,y:annotationPage.y,button:'left',clickCount:1});
+  await wait('__messages.filter(m=>m.type==="markup").at(-1)?.markup.annotations.some(a=>a.type==="note"&&a.text==="Remember this")','save a sticky note');
+  assert.ok(await evaluate('document.querySelectorAll(".folio-note").length>0'));pass('add and persist a sticky note');
+  await evaluate('document.getElementById("annotationDraw").click()');
+  await send('Input.dispatchMouseEvent',{type:'mousePressed',x:annotationPage.x+30,y:annotationPage.y+30,button:'left',clickCount:1});await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:annotationPage.x+100,y:annotationPage.y+90,button:'left'});await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:annotationPage.x+100,y:annotationPage.y+90,button:'left',clickCount:1});
+  await wait('__messages.filter(m=>m.type==="markup").at(-1)?.markup.annotations.some(a=>a.type==="drawing")','save a drawing');pass('add and persist a freehand drawing');
+  await command('closeOcr');await evaluate('document.getElementById("annotationClose").click()');
   // Rasterize independent text into JPEG, then wrap it in an image-only PDF.
   const scan = await evaluate(`(()=>{const c=document.createElement('canvas');c.width=1224;c.height=1584;const x=c.getContext('2d');x.fillStyle='white';x.fillRect(0,0,c.width,c.height);x.fillStyle='black';x.font='40px Arial';x.fillText('Scanned pages can be read offline.',90,180);x.fillText('Folio keeps your documents private.',90,260);x.fillText('The quick brown fox jumps over the lazy dog.',90,340);return c.toDataURL('image/jpeg',.95).split(',')[1];})()`);
   await writeFile(path.join(fixtures,'scanned-english.pdf'),makeImagePdf(Buffer.from(scan,'base64'),1224,1584));

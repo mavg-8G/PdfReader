@@ -30,6 +30,15 @@
     <span id="ocrMatch" role="status"></span>
     <p id="ocrNote" class="ocr-note">OCR may make mistakes. This text is temporary; it isn’t added to the PDF or document-wide search.</p>
   </aside>
+  <aside id="annotationPanel" aria-labelledby="annotationHeading" hidden>
+    <div class="annotation-header"><h2 id="annotationHeading">Annotations</h2><button id="annotationClose" aria-label="Close annotations">&#x2715;</button></div>
+    <p id="annotationDescription">Notes, highlights, drawings, and form entries are saved in a separate .folio.json file beside the PDF.</p>
+    <div class="annotation-actions"><button id="annotationNote" aria-pressed="false">Sticky note</button><button id="annotationDraw" aria-pressed="false">Draw</button></div>
+    <label id="annotationNoteLabel" for="annotationNoteText">New note text</label>
+    <textarea id="annotationNoteText" maxlength="5000" rows="3" placeholder="Write a note, then click a page…"></textarea>
+    <button id="annotationHighlight">Highlight selection</button>
+    <p id="annotationStatus" role="status" aria-live="polite"></p>
+  </aside>
   <div id="printContainer" aria-hidden="true"></div>
   <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
   <button id="exitPresentation" hidden title="Exit presentation (Escape)">Exit presentation · Esc</button>

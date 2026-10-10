@@ -1,5 +1,6 @@
 using PdfReader.Core;
 using System.Text;
+using System.Text.Json;
 
 // Dependency-free behavioral test runner. Nonzero exit code on any failure.
 var root = Path.Combine(Path.GetTempPath(), "FolioTests", Guid.NewGuid().ToString("N"));
@@ -63,6 +64,27 @@ AsyncTest("Save copy preserves original bytes", async () =>
     Equal(Convert.ToHexString(await File.ReadAllBytesAsync(valid)), Convert.ToHexString(await File.ReadAllBytesAsync(destination)));
 });
 AsyncTest("Save copy refuses original path", async () => { using var doc = await DocumentSession.OpenAsync(valid); await ThrowsAsync<DocumentException>(() => doc.SaveCopyAsync(valid)); });
+AsyncTest("Markup is saved in a sidecar without changing the PDF", async () =>
+{
+    var original = Convert.ToHexString(await File.ReadAllBytesAsync(valid));
+    using var doc = await DocumentSession.OpenAsync(valid);
+    var store = new DocumentMarkupStore(doc);
+    using var payload = JsonDocument.Parse("""{"version":1,"annotations":[{"id":"note-1","type":"note","page":1,"x":0.2,"y":0.3,"text":"Remember this"},{"id":"highlight-1","type":"highlight","page":1,"rects":[{"x":0.1,"y":0.2,"width":0.3,"height":0.04}]},{"id":"drawing-1","type":"drawing","page":1,"points":[{"x":0.1,"y":0.1},{"x":0.2,"y":0.2}]}],"formValues":{"pdfjs_internal_id_1":"Ada","pdfjs_internal_id_2":true}}""");
+    Equal<string?>(null, await store.SaveAsync(payload.RootElement));
+    Equal(original, Convert.ToHexString(await File.ReadAllBytesAsync(valid)));
+    var (markup, error) = await store.LoadAsync();
+    Equal<string?>(null, error); Equal(3, markup.Annotations.Count); Equal("Ada", markup.FormValues["pdfjs_internal_id_1"].GetString());
+    Equal(true, markup.FormValues["pdfjs_internal_id_2"].GetBoolean()); Equal(true, File.Exists(valid + ".folio.json"));
+});
+AsyncTest("Markup from an older PDF version is ignored", async () =>
+{
+    using var doc = await DocumentSession.OpenAsync(valid);
+    var store = new DocumentMarkupStore(doc);
+    await File.WriteAllTextAsync(store.Path, """{"version":1,"documentKey":"different","annotations":[],"formValues":{}}""");
+    var (markup, error) = await store.LoadAsync();
+    Equal(0, markup.Annotations.Count); Equal(true, error is not null);
+    File.Delete(store.Path);
+});
 AsyncTest("Cancelled save leaves an existing destination intact", async () =>
 {
     var destination = Path.Combine(root, "existing.pdf"); await File.WriteAllTextAsync(destination, "original destination");

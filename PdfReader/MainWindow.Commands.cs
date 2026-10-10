@@ -32,7 +32,7 @@ public sealed partial class MainWindow
     }
     private void UpdateControls()
     {
-        NavigationControls.IsEnabled = FindButton.IsEnabled = OcrButton.IsEnabled = RotateButton.IsEnabled = SaveButton.IsEnabled = _state.IsOpen;
+        NavigationControls.IsEnabled = FindButton.IsEnabled = AnnotateButton.IsEnabled = OcrButton.IsEnabled = RotateButton.IsEnabled = SaveButton.IsEnabled = _state.IsOpen;
         PrintButton.IsEnabled = _state.IsOpen && _canPrint;
         PreviousButton.IsEnabled = _state.Page > 1; NextButton.IsEnabled = _state.Page < _state.PageCount;
         ZoomOutButton.IsEnabled = _state.Zoom > .25; ZoomInButton.IsEnabled = _state.Zoom < 5;
@@ -67,17 +67,21 @@ public sealed partial class MainWindow
     private void SetFullscreen(bool enabled)
     {
         _fullscreen = enabled; AppWindow.SetPresenter(enabled ? AppWindowPresenterKind.FullScreen : AppWindowPresenterKind.Default);
+        ApplyMinimumSize();
+    }
+    // Below this size the toolbar and side panels can no longer lay out usefully.
+    private void ApplyMinimumSize()
+    {
+        if (AppWindow.Presenter is OverlappedPresenter presenter) { presenter.PreferredMinimumWidth = 480; presenter.PreferredMinimumHeight = 420; }
     }
     private void SetPresentation(bool enabled)
     {
         if (enabled && (!_state.IsOpen || _busy)) return;
+        if (enabled && SearchPanel.Visibility == Visibility.Visible) CloseSearch();
         _presentation = enabled; Send("presentation", value: enabled); SetFullscreen(enabled);
         ToolbarArea.Visibility = enabled ? Visibility.Collapsed : _state.IsOpen ? Visibility.Visible : Visibility.Collapsed;
-        TitleDragArea.Visibility = NavigationRail.Visibility = enabled ? Visibility.Collapsed : Visibility.Visible;
-        BodyNavigationColumn.Width = new GridLength(enabled ? 0 : 64);
-        Root.RowDefinitions[0].Height = new GridLength(enabled ? 0 : 48);
-        Notices.Visibility = enabled ? Visibility.Collapsed : Visibility.Visible;
-        Root.RowDefinitions[2].Height = new GridLength(enabled ? 0 : 30); UpdateSidebar();
+        AppTitleBar.Visibility = Notices.Visibility = StatusBar.Visibility = enabled ? Visibility.Collapsed : Visibility.Visible;
+        UpdateSidebar();
     }
     private ContentDialog NewDialog(string title, object content, string primary, string close) => new()
     { XamlRoot = Root.XamlRoot, RequestedTheme = Root.ActualTheme, Title = title, Content = content, PrimaryButtonText = primary, CloseButtonText = close, DefaultButton = ContentDialogButton.Primary };
@@ -103,13 +107,7 @@ public sealed partial class MainWindow
             MinWidth = 280,
             Header = T("Display language", "Idioma de la interfaz")
         };
-        var panel = new StackPanel { Spacing = 18 };
-        panel.Children.Add(new TextBlock
-        {
-            Text = T("Personalize Folio. Changes apply immediately.", "Personaliza Folio. Los cambios se aplican de inmediato."),
-            Opacity = .7,
-            TextWrapping = TextWrapping.Wrap
-        });
+        var panel = new StackPanel { Spacing = 16 };
         panel.Children.Add(theme); panel.Children.Add(language);
         if (await ShowDialogAsync(NewDialog(T("Settings", "Configuración"), panel, T("Apply", "Aplicar"), T("Cancel", "Cancelar"))) == ContentDialogResult.Primary)
         {
@@ -120,10 +118,45 @@ public sealed partial class MainWindow
     }
     private async Task HelpAsync()
     {
-        var text = T(
-            "Ctrl+O     Open PDF\nCtrl+S     Save a copy\nCtrl+P     Print\nCtrl+W     Close document\nCtrl+F     Search\nEnter / Shift+Enter     Next / previous match\nF3 / Shift+F3     Next / previous match\nCtrl+G     Go to page\nPage Up / Page Down     Previous / next page\nHome / End     First / last page (in document)\nCtrl++ / Ctrl+-     Zoom in / out\nCtrl+0 / Ctrl+1 / Ctrl+2     Fit page / actual size / fit width\nCtrl+R     Rotate clockwise\nCtrl+C     Copy selected text\nF11     Fullscreen\nF5     Presentation\nEscape     Exit presentation, fullscreen, or search\n\nPDFs stay on this device. Use Read scanned page to extract English or Spanish text locally, one page at a time. Select the result and press Ctrl+C to copy. OCR text is temporary and is not added to the PDF or document-wide search. Existing annotations are shown; editing and digital signature validation are not supported.",
-            "Ctrl+O     Abrir PDF\nCtrl+S     Guardar una copia\nCtrl+P     Imprimir\nCtrl+W     Cerrar documento\nCtrl+F     Buscar\nEnter / Mayús+Enter     Coincidencia siguiente / anterior\nF3 / Mayús+F3     Coincidencia siguiente / anterior\nCtrl+G     Ir a la página\nRe Pág / Av Pág     Página anterior / siguiente\nInicio / Fin     Primera / última página\nCtrl++ / Ctrl+-     Acercar / alejar\nCtrl+0 / Ctrl+1 / Ctrl+2     Ajustar página / tamaño real / ajustar al ancho\nCtrl+R     Girar a la derecha\nCtrl+C     Copiar texto seleccionado\nF11     Pantalla completa\nF5     Presentación\nEscape     Salir de presentación, pantalla completa o búsqueda\n\nLos PDF permanecen en este dispositivo. Usa Leer página escaneada para extraer texto en inglés o español de forma local, una página a la vez. Selecciona el resultado y presiona Ctrl+C para copiarlo. El texto OCR es temporal y no se agrega al PDF ni a la búsqueda del documento. Se muestran las anotaciones existentes; no se admite la edición ni la validación de firmas digitales.");
-        await ShowDialogAsync(NewDialog(T("Reading with Folio", "Leer con Folio"), new ScrollViewer { Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, MaxWidth = 490 }, MaxHeight = 500 }, "", T("Done", "Listo")));
+        (string Keys, string KeysEs, string English, string Spanish)[] shortcuts =
+        [
+            ("Ctrl+O", "Ctrl+O", "Open PDF", "Abrir PDF"),
+            ("Ctrl+S", "Ctrl+S", "Save a copy", "Guardar una copia"),
+            ("Ctrl+P", "Ctrl+P", "Print", "Imprimir"),
+            ("Ctrl+W", "Ctrl+W", "Close document", "Cerrar documento"),
+            ("Ctrl+F", "Ctrl+F", "Search", "Buscar"),
+            ("Enter / Shift+Enter", "Enter / Mayús+Enter", "Next / previous match", "Coincidencia siguiente / anterior"),
+            ("F3 / Shift+F3", "F3 / Mayús+F3", "Next / previous match", "Coincidencia siguiente / anterior"),
+            ("Ctrl+G", "Ctrl+G", "Go to page", "Ir a la página"),
+            ("Page Up / Page Down", "Re Pág / Av Pág", "Previous / next page", "Página anterior / siguiente"),
+            ("Home / End", "Inicio / Fin", "First / last page (in document)", "Primera / última página"),
+            ("Ctrl++ / Ctrl+-", "Ctrl++ / Ctrl+-", "Zoom in / out", "Acercar / alejar"),
+            ("Ctrl+0 / Ctrl+1 / Ctrl+2", "Ctrl+0 / Ctrl+1 / Ctrl+2", "Fit page / actual size / fit width", "Ajustar página / tamaño real / ajustar al ancho"),
+            ("Ctrl+R", "Ctrl+R", "Rotate clockwise", "Girar a la derecha"),
+            ("Ctrl+C", "Ctrl+C", "Copy selected text", "Copiar texto seleccionado"),
+            ("F11", "F11", "Fullscreen", "Pantalla completa"),
+            ("F5", "F5", "Presentation", "Presentación"),
+            ("Escape", "Escape", "Exit presentation, fullscreen, or search", "Salir de presentación, pantalla completa o búsqueda")
+        ];
+        var notes = T(
+            "Use Annotate to add sticky notes, highlights and drawings. They are saved in a separate .folio.json file beside the PDF; form entries are saved there too. PDFs stay on this device. Use Read scanned page to extract English or Spanish text locally, one page at a time. Select the result and press Ctrl+C to copy. OCR text is temporary and is not added to the PDF or document-wide search. Existing PDF annotations are shown; editing PDF-native annotations and validating digital signatures are not supported.",
+            "Usa Anotar para agregar notas adhesivas, resaltados y dibujos. Se guardan en un archivo .folio.json separado junto al PDF; los datos de formularios también se guardan allí. Los PDF permanecen en este dispositivo. Usa Leer página escaneada para extraer texto en inglés o español de forma local, una página a la vez. Selecciona el resultado y presiona Ctrl+C para copiarlo. El texto OCR es temporal y no se agrega al PDF ni a la búsqueda del documento. Se muestran las anotaciones del PDF; no se admite editar anotaciones nativas del PDF ni validar firmas digitales.");
+        // A two-column grid keeps the keys aligned; padded text cannot in a proportional font.
+        var grid = new Grid { ColumnSpacing = 24, RowSpacing = 8 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        foreach (var (keys, keysEs, english, spanish) in shortcuts)
+        {
+            var row = grid.RowDefinitions.Count; grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var key = new TextBlock { Text = T(keys, keysEs), FontWeight = Microsoft.UI.Text.FontWeights.SemiBold };
+            var description = new TextBlock { Text = T(english, spanish), TextWrapping = TextWrapping.Wrap };
+            Grid.SetRow(key, row); Grid.SetRow(description, row); Grid.SetColumn(description, 1);
+            grid.Children.Add(key); grid.Children.Add(description);
+        }
+        var panel = new StackPanel { Spacing = 20, MaxWidth = 490, Padding = new Thickness(0, 0, 16, 0) };
+        panel.Children.Add(grid);
+        panel.Children.Add(new TextBlock { Text = notes, TextWrapping = TextWrapping.Wrap, FontSize = 12, Opacity = .7 });
+        await ShowDialogAsync(NewDialog(T("Keyboard shortcuts", "Métodos abreviados de teclado"), new ScrollViewer { Content = panel, MaxHeight = 500 }, "", T("Done", "Listo")));
     }
     private async Task ActionAsync(string action)
     {
@@ -134,6 +167,7 @@ public sealed partial class MainWindow
             case "print": await PrintAsync(); break;
             case "close": if (!_dialogOpen) CloseDocument(); break;
             case "find": ShowSearch(); break;
+            case "annotate": if (_state.IsOpen && !_busy && !_printing) Send("annotations"); break;
             case "findNext": ShowSearch(); Find(true, false); break;
             case "findPrevious": ShowSearch(); Find(true, true); break;
             case "page": if (_state.IsOpen) { PageBox.Focus(FocusState.Programmatic); PageBox.SelectAll(); } break;
@@ -211,7 +245,7 @@ public sealed partial class MainWindow
     private void Save_Click(object sender, RoutedEventArgs e) => _ = RunAsync(SaveCopyAsync);
     private void Print_Click(object sender, RoutedEventArgs e) => _ = RunAsync(PrintAsync);
     private void Close_Click(object sender, RoutedEventArgs e) { if (!_dialogOpen) CloseDocument(); }
-    private void Home_Click(object sender, RoutedEventArgs e) { if (!_dialogOpen && (_state.IsOpen || _busy)) CloseDocument(); }
+    private void TitleBar_BackRequested(TitleBar sender, object args) { if (!_dialogOpen && (_state.IsOpen || _busy)) CloseDocument(); }
     private void Previous_Click(object sender, RoutedEventArgs e) => Navigate(_state.Page - 1);
     private void Next_Click(object sender, RoutedEventArgs e) => Navigate(_state.Page + 1);
     private void ZoomIn_Click(object sender, RoutedEventArgs e) => Zoom(1.2);
@@ -221,6 +255,7 @@ public sealed partial class MainWindow
     private void FitPage_Click(object sender, RoutedEventArgs e) => Fit("page-fit");
     private void Rotate_Click(object sender, RoutedEventArgs e) => Send("rotate");
     private void Find_Click(object sender, RoutedEventArgs e) => ShowSearch();
+    private void Annotate_Click(object sender, RoutedEventArgs e) => _ = RunAsync(() => ActionAsync("annotate"));
     private void FindPrevious_Click(object sender, RoutedEventArgs e) => Find(true, true);
     private void FindNext_Click(object sender, RoutedEventArgs e) => Find(true, false);
     private void CloseSearch_Click(object sender, RoutedEventArgs e) => CloseSearch();

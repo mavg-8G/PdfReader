@@ -34,16 +34,20 @@ public sealed partial class MainWindow
         {
             var document = await DocumentSession.OpenAsync(path, cancellationToken);
             if (cancellationToken.IsCancellationRequested || _closed) { document.Dispose(); return; }
+            var markupStore = new DocumentMarkupStore(document);
+            var (markup, markupError) = await markupStore.LoadAsync(cancellationToken);
+            if (cancellationToken.IsCancellationRequested || _closed) { document.Dispose(); return; }
             Remember();
             var previous = _host.Document;
-            _host.Document = document; _state.Reset(); _canPrint = false;
+            _host.Document = document; _markupStore = markupStore; _state.Reset(); _canPrint = false;
             _thumbnails.Clear(); _thumbnailCache.Clear(); Thumbnails.ItemsSource = null;
             SearchPanel.Visibility = Visibility.Collapsed; SearchBox.Text = "";
-            FileNameText.Text = document.Name; ToolTipService.SetToolTip(FileNameText, document.Path);
+            AppTitleBar.Subtitle = document.Name; AppTitleBar.IsBackButtonVisible = true;
             Title = document.Name + " — Folio"; ToolbarArea.Visibility = Visibility.Visible; DocumentSplit.Visibility = Visibility.Visible; Welcome.Visibility = Visibility.Collapsed;
             DocumentView.IsTabStop = true; SetBusy(T("Opening your document…", "Abriendo el documento…")); UpdateControls();
             var recent = _settings.Find(document.Key);
-            _host.Send(new { type = "open", id = document.Id, url = _host.DocumentUrl, restore = new { page = recent?.Page ?? 1, scale = recent?.Scale ?? "page-width", rotation = recent?.Rotation ?? 0 } });
+            _host.Send(new { type = "open", id = document.Id, url = _host.DocumentUrl, restore = new { page = recent?.Page ?? 1, scale = recent?.Scale ?? "page-width", rotation = recent?.Rotation ?? 0 }, markup = new { version = markup.Version, annotations = markup.Annotations, formValues = markup.FormValues } });
+            if (markupError is not null) ShowWarning(T("Annotations could not be loaded. The PDF was opened without them.", "No se pudieron cargar las anotaciones. El PDF se abrió sin ellas."));
             previous?.Dispose(); _openTimer.Start();
         }
         catch { EndBusy(); throw; }
@@ -86,6 +90,7 @@ public sealed partial class MainWindow
                 var title = TranslateKnown(GetString(message, "title")); var error = TranslateKnown(GetString(message, "message"));
                 CloseDocument(); ShowError(title, error); break;
             case "warning": ShowWarning(TranslateKnown(GetString(message, "message"))); break;
+            case "markup": await SaveMarkupAsync(message, id); break;
             case "find":
                 var current = message.TryGetProperty("current", out var c) ? c.GetInt32() : 0;
                 var count = message.TryGetProperty("total", out var n) ? n.GetInt32() : 0;
@@ -148,6 +153,18 @@ public sealed partial class MainWindow
             _thumbnails[old - 1].Image = null; _thumbnails[old - 1].Requested = false;
         }
     }
+    private async Task SaveMarkupAsync(JsonElement message, string id)
+    {
+        if (_host.Document?.Id != id || _markupStore is null || !message.TryGetProperty("markup", out var markup)) return;
+        var error = await _markupStore.SaveAsync(markup);
+        if (_host.Document?.Id == id && error is not null) ShowWarning(T(error, error switch
+        {
+            "Annotations could not be saved. Check folder permissions and available space." => "No se pudieron guardar las anotaciones. Comprueba los permisos de la carpeta y el espacio disponible.",
+            "Annotations could not be saved because they are too large." => "No se pudieron guardar las anotaciones porque son demasiado grandes.",
+            "Annotations could not be saved because their data is invalid." => "No se pudieron guardar las anotaciones porque sus datos no son válidos.",
+            _ => "No se pudieron guardar las anotaciones porque sus datos no son válidos."
+        }));
+    }
     private async Task SaveCopyAsync()
     {
         if (_host.Document is not { } document || !_state.IsOpen || _busy || _printing || _dialogOpen) return;
@@ -183,10 +200,11 @@ public sealed partial class MainWindow
         if (_presentation) SetPresentation(false);
         _host.Send(new { type = "close" });
         var previous = _host.Document; _host.Document = null; previous?.Dispose();
+        _markupStore = null;
         _state.Reset(); _thumbnails.Clear(); _thumbnailCache.Clear(); Thumbnails.ItemsSource = null;
         DocumentSplit.IsPaneOpen = false; DocumentSplit.Visibility = Visibility.Collapsed; ToolbarArea.Visibility = Visibility.Collapsed;
         Welcome.SetRecent(_settings.Data.Recent); Welcome.Visibility = Visibility.Visible; DocumentView.IsTabStop = false;
-        FileNameText.Text = T("PDF reader", "Lector de PDF"); Title = "Folio"; ToolTipService.SetToolTip(FileNameText, null);
+        AppTitleBar.Subtitle = T("PDF reader", "Lector de PDF"); AppTitleBar.IsBackButtonVisible = false; Title = "Folio";
         SearchPanel.Visibility = Visibility.Collapsed;
         EndBusy(); UpdateControls(); StatusText.Text = T("Ready", "Listo");
     }
