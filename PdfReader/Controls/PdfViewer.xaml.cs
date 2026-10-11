@@ -53,6 +53,7 @@ public sealed partial class PdfViewer : UserControl
     public event Action<string>? Warning;
     public event Action? MarkupChanged;
     public event Action? ToolChanged;
+    public event Action? HistoryChanged;
     public event Action? ExitPresentationRequested;
 
     public PdfViewer()
@@ -95,6 +96,8 @@ public sealed partial class PdfViewer : UserControl
         ++_generation; _pdf = null; _warned = false;
         _searchCancel?.Cancel(); _searchCancel = null; _matches.Clear(); _matchesByPage.Clear(); _currentMatch = -1; _query = ""; _searchPending = false;
         _anchor = _focus = null; _dragging = false; _stroke = null; _strokeLine = null;
+        _recognized.Clear();
+        if (_undo.Count + _redo.Count > 0) { _undo.Clear(); _redo.Clear(); HistoryChanged?.Invoke(); }
         _markup = DocumentMarkup.Empty(""); SetTool(AnnotationTool.None);
         _realized.Clear(); _text.Clear(); _textOrder.Clear(); Pages.Children.Clear();
         _tops = []; _pendingAnchor = null; _page = 1; _rotation = 0; _zoom = 1; _scale = "page-width";
@@ -335,7 +338,7 @@ public sealed partial class PdfViewer : UserControl
 
         async Task<PdfPageText?> Load()
         {
-            try { var text = await Task.Run(() => pdf.GetText(page)); return generation == _generation ? text : null; }
+            try { var text = await Task.Run(() => ReadText(pdf, page)); return generation == _generation ? text : null; }
             catch (Exception ex) when (ex is ObjectDisposedException or DocumentException) { return null; }
         }
     }

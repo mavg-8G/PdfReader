@@ -12,6 +12,7 @@ void Equal<T>(T expected, T actual) { if (!EqualityComparer<T>.Default.Equals(ex
 void Throws<T>(Action run) where T : Exception { try { run(); } catch (T) { return; } throw new Exception($"Expected {typeof(T).Name}"); }
 async Task ThrowsAsync<T>(Func<Task> run) where T : Exception { try { await run(); } catch (T) { return; } throw new Exception($"Expected {typeof(T).Name}"); }
 var valid = Path.Combine(root, "source.pdf");
+var markupFolder = Path.Combine(root, "markup");
 await File.WriteAllTextAsync(valid, "%PDF-1.7\n0123456789\n%%EOF", Encoding.ASCII);
 
 AsyncTest("Open validates a PDF header and keeps a read-only lease", async () =>
@@ -68,18 +69,51 @@ AsyncTest("Markup is saved in a sidecar without changing the PDF", async () =>
 {
     var original = Convert.ToHexString(await File.ReadAllBytesAsync(valid));
     using var doc = await DocumentSession.OpenAsync(valid);
-    var store = new DocumentMarkupStore(doc);
+    var store = new DocumentMarkupStore(doc, markupFolder);
     using var payload = JsonDocument.Parse("""{"version":1,"annotations":[{"id":"note-1","type":"note","page":1,"x":0.2,"y":0.3,"text":"Remember this"},{"id":"highlight-1","type":"highlight","page":1,"rects":[{"x":0.1,"y":0.2,"width":0.3,"height":0.04}]},{"id":"drawing-1","type":"drawing","page":1,"points":[{"x":0.1,"y":0.1},{"x":0.2,"y":0.2}]}],"formValues":{"pdfjs_internal_id_1":"Ada","pdfjs_internal_id_2":true}}""");
     Equal<string?>(null, await store.SaveAsync(payload.RootElement));
     Equal(original, Convert.ToHexString(await File.ReadAllBytesAsync(valid)));
     var (markup, error) = await store.LoadAsync();
     Equal<string?>(null, error); Equal(3, markup.Annotations.Count); Equal("Ada", markup.FormValues["pdfjs_internal_id_1"].GetString());
-    Equal(true, markup.FormValues["pdfjs_internal_id_2"].GetBoolean()); Equal(true, File.Exists(valid + ".folio.json"));
+    Equal(true, markup.FormValues["pdfjs_internal_id_2"].GetBoolean());
+    // The markup lives in the app's folder; nothing appears beside the PDF.
+    Equal(true, File.Exists(store.Path)); Equal(markupFolder, Path.GetDirectoryName(store.Path)); Equal(false, File.Exists(store.LegacyPath));
+    File.Delete(store.Path);
+});
+AsyncTest("A sidecar left beside the PDF by an older version is moved into the app folder", async () =>
+{
+    using var doc = await DocumentSession.OpenAsync(valid);
+    var store = new DocumentMarkupStore(doc, markupFolder);
+    await File.WriteAllTextAsync(store.LegacyPath, JsonSerializer.Serialize(new { version = 1, documentKey = doc.Key, annotations = new[] { new { id = "note-1", type = "note", page = 1, x = .5, y = .5, text = "Kept" } } }));
+    var (markup, error) = await store.LoadAsync();
+    Equal<string?>(null, error); Equal("Kept", markup.Annotations.Single().Text);
+    Equal(false, File.Exists(store.LegacyPath)); Equal(true, File.Exists(store.Path));
+    Equal("Kept", (await new DocumentMarkupStore(doc, markupFolder).LoadAsync()).Markup.Annotations.Single().Text);
+    File.Delete(store.Path);
+});
+AsyncTest("A sidecar for another version of the PDF is neither imported nor deleted", async () =>
+{
+    using var doc = await DocumentSession.OpenAsync(valid);
+    var store = new DocumentMarkupStore(doc, markupFolder);
+    await File.WriteAllTextAsync(store.LegacyPath, """{"version":1,"documentKey":"different","annotations":[{"id":"n","type":"note","page":1,"x":0.5,"y":0.5,"text":"Old"}]}""");
+    var (markup, error) = await store.LoadAsync();
+    Equal<string?>(null, error); Equal(0, markup.Annotations.Count); Equal(true, File.Exists(store.LegacyPath)); Equal(false, File.Exists(store.Path));
+    File.Delete(store.LegacyPath);
+});
+AsyncTest("Removing the last annotation removes the markup file", async () =>
+{
+    using var doc = await DocumentSession.OpenAsync(valid);
+    var store = new DocumentMarkupStore(doc, markupFolder);
+    var markup = DocumentMarkup.Empty(doc.Key); markup.Annotations.Add(new DocumentMarkupAnnotation { Id = "note-1", Type = "note", Page = 1, X = .1, Y = .1, Text = "Temporary" });
+    Equal<string?>(null, await store.SaveAsync(markup)); Equal(true, File.Exists(store.Path));
+    markup.Annotations.Clear();
+    Equal<string?>(null, await store.SaveAsync(markup)); Equal(false, File.Exists(store.Path));
+    Equal<string?>(null, await store.SaveAsync(markup));
 });
 AsyncTest("Markup from an older PDF version is ignored", async () =>
 {
     using var doc = await DocumentSession.OpenAsync(valid);
-    var store = new DocumentMarkupStore(doc);
+    var store = new DocumentMarkupStore(doc, markupFolder); Directory.CreateDirectory(markupFolder);
     await File.WriteAllTextAsync(store.Path, """{"version":1,"documentKey":"different","annotations":[],"formValues":{}}""");
     var (markup, error) = await store.LoadAsync();
     Equal(0, markup.Annotations.Count); Equal(true, error is not null);

@@ -1,12 +1,15 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace PdfReader.Core;
 
 /// <summary>
-/// Stores reader-owned markup beside a PDF. The PDF itself is always opened read-only.
+/// Stores reader-owned markup for one PDF in the app's own data folder, so nothing is written next to the
+/// document and removing the app's data removes every markup file. The PDF itself is always opened read-only.
 /// </summary>
-public sealed class DocumentMarkupStore(DocumentSession document)
+public sealed class DocumentMarkupStore(DocumentSession document, string folder)
 {
     private const int MaximumFileBytes = 512 * 1024;
     private const int MaximumAnnotations = 500;
@@ -19,24 +22,47 @@ public sealed class DocumentMarkupStore(DocumentSession document)
     };
     private readonly SemaphoreSlim _gate = new(1, 1);
 
-    public string Path { get; } = document.Path + ".folio.json";
+    /// <summary>One file per PDF path. The name is a hash because a path is not a valid file name.</summary>
+    public string Path { get; } = System.IO.Path.Combine(folder, Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(document.Path.ToUpperInvariant())))[..32].ToLowerInvariant() + ".json");
+
+    /// <summary>Where earlier versions kept the markup: beside the PDF. Read once, then moved into <see cref="Path"/>.</summary>
+    public string LegacyPath { get; } = document.Path + ".folio.json";
 
     public async Task<(DocumentMarkup Markup, string? Error)> LoadAsync(CancellationToken cancellationToken = default)
     {
-        if (!File.Exists(Path)) return (DocumentMarkup.Empty(document.Key), null);
-        try
-        {
-            if (new FileInfo(Path).Length > MaximumFileBytes)
-                throw new InvalidDataException("The annotation file is too large.");
-            await using var input = new FileStream(Path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous);
-            var markup = await JsonSerializer.DeserializeAsync<DocumentMarkup>(input, Json, cancellationToken);
-            if (markup is null || markup.Version != 1 || !string.Equals(markup.DocumentKey, document.Key, StringComparison.Ordinal))
-                throw new InvalidDataException("The annotation file belongs to a different version of this PDF.");
-            return (Normalize(markup, document.Key), null);
-        }
+        if (!File.Exists(Path)) return (await ImportLegacyAsync(cancellationToken), null);
+        try { return (await ReadAsync(Path, cancellationToken), null); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or JsonException)
         {
             return (DocumentMarkup.Empty(document.Key), "Annotations could not be loaded. The PDF was opened without them.");
+        }
+    }
+
+    private async Task<DocumentMarkup> ReadAsync(string path, CancellationToken cancellationToken)
+    {
+        if (new FileInfo(path).Length > MaximumFileBytes)
+            throw new InvalidDataException("The annotation file is too large.");
+        await using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous);
+        var markup = await JsonSerializer.DeserializeAsync<DocumentMarkup>(input, Json, cancellationToken);
+        if (markup is null || markup.Version != 1 || !string.Equals(markup.DocumentKey, document.Key, StringComparison.Ordinal))
+            throw new InvalidDataException("The annotation file belongs to a different version of this PDF.");
+        return Normalize(markup, document.Key);
+    }
+
+    // A sidecar that cannot be read or belongs to an older version of the PDF is left where it is, untouched.
+    private async Task<DocumentMarkup> ImportLegacyAsync(CancellationToken cancellationToken)
+    {
+        if (!File.Exists(LegacyPath)) return DocumentMarkup.Empty(document.Key);
+        try
+        {
+            var markup = await ReadAsync(LegacyPath, cancellationToken);
+            // The sidecar is only removed once its contents are safely in the new location.
+            if (await SaveAsync(markup, cancellationToken) is null && File.Exists(Path)) File.Delete(LegacyPath);
+            return markup;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or JsonException)
+        {
+            return DocumentMarkup.Empty(document.Key);
         }
     }
 
@@ -59,6 +85,9 @@ public sealed class DocumentMarkupStore(DocumentSession document)
         try
         {
             var clean = Normalize(markup, document.Key);
+            // A document with nothing left on it keeps no file at all.
+            if (clean.Annotations.Count == 0 && clean.FormValues.Count == 0) { File.Delete(Path); return null; }
+            Directory.CreateDirectory(folder);
             await using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, FileOptions.Asynchronous))
             {
                 await JsonSerializer.SerializeAsync(output, clean, Json, cancellationToken);

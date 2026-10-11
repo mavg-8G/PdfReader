@@ -171,6 +171,7 @@
                                         </Grid>
                                         <TextBlock x:Name="OcrDescription" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                                         <ComboBox x:Name="OcrLanguageBox" HorizontalAlignment="Stretch" SelectedIndex="0">
+                                            <ComboBoxItem x:Name="OcrAutoItem" Content="Automatic" Tag="auto"/>
                                             <ComboBoxItem x:Name="OcrEnglishItem" Content="English" Tag="en"/>
                                             <ComboBoxItem x:Name="OcrSpanishItem" Content="Español" Tag="es"/>
                                         </ComboBox>
@@ -199,6 +200,14 @@
                                         </StackPanel>
                                         <TextBox x:Name="NoteTextBox" AcceptsReturn="True" TextWrapping="Wrap" MaxLength="5000" MinHeight="80" MaxHeight="200" TextChanged="NoteText_Changed"/>
                                         <Button x:Name="HighlightButton" Click="Highlight_Click"/>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Button x:Name="UndoButton" IsEnabled="False" Click="Undo_Click">
+                                                <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE7A7;" FontSize="14"/><TextBlock x:Name="UndoText" Text="Undo"/></StackPanel>
+                                            </Button>
+                                            <Button x:Name="RedoButton" IsEnabled="False" Click="Redo_Click">
+                                                <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE7A6;" FontSize="14"/><TextBlock x:Name="RedoText" Text="Redo"/></StackPanel>
+                                            </Button>
+                                        </StackPanel>
                                         <TextBlock x:Name="AnnotationStatus" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" AutomationProperties.LiveSetting="Polite"/>
                                     </StackPanel>
                                 </ScrollViewer>

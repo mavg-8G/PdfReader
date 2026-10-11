@@ -50,7 +50,7 @@ public sealed partial class MainWindow
                     BusyOverlay.Visibility = Visibility.Visible;
                 }
             }
-            var markupStore = new DocumentMarkupStore(document);
+            var markupStore = new DocumentMarkupStore(document, App.AnnotationsFolder);
             var (markup, markupError) = await markupStore.LoadAsync(cancellationToken);
             if (cancellationToken.IsCancellationRequested || _closed) return;
 

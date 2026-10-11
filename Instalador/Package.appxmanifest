@@ -9,7 +9,7 @@
   <Identity
     Name="2f6c5098-b523-4d4e-ad3a-bc9721bbc1d9"
     Publisher="CN=mvasc"
-    Version="1.0.11.0" />
+    Version="1.0.14.0" />
 
   <Properties>
     <DisplayName>Folio</DisplayName>
@@ -42,6 +42,18 @@
           <uap:Rotation Preference="landscape"/></uap:InitialRotationPreference>
         <uap:LockScreen Notification="badgeAndTileText" BadgeLogo="Images\BadgeLogo.png"/>
       </uap:VisualElements>
+      <Extensions>
+        <!-- Lets the user choose Folio for .pdf in "Open with" and in Settings > Apps > Default apps. -->
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="pdf">
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="application/pdf">.pdf</uap:FileType>
+            </uap:SupportedFileTypes>
+            <uap:DisplayName>PDF document</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+      </Extensions>
     </Application>
   </Applications>
 

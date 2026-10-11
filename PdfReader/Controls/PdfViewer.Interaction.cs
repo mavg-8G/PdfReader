@@ -22,6 +22,7 @@ namespace PdfReader.Controls;
 // the unrotated page ("canonical"), converted to the rotated view only when drawing or hit-testing.
 public sealed partial class PdfViewer
 {
+    private const int MaximumUndoSteps = 100;
     private const int MaximumAnnotations = 500, MaximumStrokePoints = 1024, MaximumHighlightRects = 100, MaximumMatches = 20_000, MaximumCopyLength = 4_000_000;
     private readonly record struct TextPosition(int Page, int Index);
     private readonly record struct Match(int Page, int Start, int Length);
@@ -34,6 +35,10 @@ public sealed partial class PdfViewer
     private (int Page, double X, double Y) _press;
     private (int Page, List<DocumentMarkupPoint> Points)? _stroke;
     private Polyline? _strokeLine;
+    // Each entry is the full annotation list as it was before one change. Lists are small, so copies are cheap.
+    private readonly List<List<DocumentMarkupAnnotation>> _undo = [], _redo = [];
+    // Text recognized on pages that have no text layer, so those pages can be selected and searched too.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, PdfPageText> _recognized = new();
 
     private readonly List<Match> _matches = [];
     private readonly Dictionary<int, List<int>> _matchesByPage = [];
@@ -145,8 +150,16 @@ public sealed partial class PdfViewer
         var remove = new Button { Content = T("Delete note", "Eliminar nota"), HorizontalAlignment = HorizontalAlignment.Right };
         var panel = new StackPanel { Spacing = 8 }; panel.Children.Add(input); panel.Children.Add(remove);
         var flyout = new Flyout { Content = panel };
-        input.TextChanged += (_, _) => { annotation.Text = input.Text; ScheduleMarkup(); };
-        remove.Click += (_, _) => { flyout.Hide(); _markup.Annotations.Remove(annotation); RedrawAll(); ScheduleMarkup(); };
+        // Typing in one visit to the note is a single undo step.
+        var edited = false;
+        flyout.Opened += (_, _) => edited = false;
+        input.TextChanged += (_, _) =>
+        {
+            if (!_markup.Annotations.Contains(annotation)) return;
+            if (!edited) { edited = true; Checkpoint(); }
+            annotation.Text = input.Text; ToolTipService.SetToolTip(button, input.Text); ScheduleMarkup();
+        };
+        remove.Click += (_, _) => { flyout.Hide(); Checkpoint(); _markup.Annotations.Remove(annotation); RedrawAll(); ScheduleMarkup(); };
         button.Flyout = flyout;
 
         var (x, y) = ToDisplayed(annotation.X, annotation.Y, _rotation);
@@ -230,6 +243,31 @@ public sealed partial class PdfViewer
         _markupTimer.Stop(); MarkupChanged?.Invoke();
     }
 
+    public bool CanUndo => _undo.Count > 0;
+    public bool CanRedo => _redo.Count > 0;
+
+    private List<DocumentMarkupAnnotation> CopyAnnotations() => JsonSerializer.Deserialize<List<DocumentMarkupAnnotation>>(JsonSerializer.Serialize(_markup.Annotations))!;
+
+    /// <summary>Records the annotations as they are now. Call it just before changing them.</summary>
+    private void Checkpoint()
+    {
+        _undo.Add(CopyAnnotations());
+        if (_undo.Count > MaximumUndoSteps) _undo.RemoveAt(0);
+        _redo.Clear(); HistoryChanged?.Invoke();
+    }
+
+    public void Undo() => Step(_undo, _redo);
+    public void Redo() => Step(_redo, _undo);
+
+    private void Step(List<List<DocumentMarkupAnnotation>> from, List<List<DocumentMarkupAnnotation>> to)
+    {
+        if (_pdf is null || from.Count == 0) return;
+        to.Add(CopyAnnotations());
+        _markup.Annotations = from[^1]; from.RemoveAt(from.Count - 1);
+        _stroke = null; _strokeLine = null;
+        RedrawAll(); ScheduleMarkup(); HistoryChanged?.Invoke();
+    }
+
     private bool CanAnnotate()
     {
         if (_markup.Annotations.Count < MaximumAnnotations) return true;
@@ -246,6 +284,8 @@ public sealed partial class PdfViewer
             if (await LoadTextAsync(page) is not { } text || SelectionOn(page, text) is not var (from, to)) continue;
             var rects = text.GetRects(from, to - from + 1).Take(MaximumHighlightRects).Select(rect => new DocumentMarkupRect { X = rect.X, Y = rect.Y, Width = rect.Width, Height = rect.Height }).ToList();
             if (rects.Count == 0) continue;
+            // A selection spanning several pages is still one undo step.
+            if (!added) Checkpoint();
             _markup.Annotations.Add(new DocumentMarkupAnnotation { Id = Guid.NewGuid().ToString("N"), Type = "highlight", Page = page, Rects = rects });
             added = true;
         }
@@ -285,6 +325,7 @@ public sealed partial class PdfViewer
             if (CanAnnotate())
             {
                 var text = PendingNoteText.Trim();
+                Checkpoint();
                 _markup.Annotations.Add(new DocumentMarkupAnnotation { Id = Guid.NewGuid().ToString("N"), Type = "note", Page = element.Page, X = x, Y = y, Text = text.Length > 0 ? text[..Math.Min(text.Length, 5000)] : T("Sticky note", "Nota adhesiva") });
                 RedrawMarks(element); ScheduleMarkup();
             }
@@ -337,7 +378,7 @@ public sealed partial class PdfViewer
         if (_stroke is var (strokePage, points))
         {
             _stroke = null; _strokeLine = null; Pages.ReleasePointerCapture(e.Pointer);
-            if (points.Count > 1) { _markup.Annotations.Add(new DocumentMarkupAnnotation { Id = Guid.NewGuid().ToString("N"), Type = "drawing", Page = strokePage, Points = points }); ScheduleMarkup(); }
+            if (points.Count > 1) { Checkpoint(); _markup.Annotations.Add(new DocumentMarkupAnnotation { Id = Guid.NewGuid().ToString("N"), Type = "drawing", Page = strokePage, Points = points }); ScheduleMarkup(); }
             if (_realized.TryGetValue(strokePage, out var drawn)) RedrawMarks(drawn);
             return;
         }
@@ -393,7 +434,13 @@ public sealed partial class PdfViewer
         {
             menu.Items.Add(new MenuFlyoutSeparator());
             var highlight = mark.Type == "highlight";
-            Add(highlight ? "Remove highlight" : "Remove drawing", highlight ? "Quitar resaltado" : "Quitar dibujo", Symbol.Delete, true, () => { _markup.Annotations.Remove(mark); RedrawAll(); ScheduleMarkup(); });
+            Add(highlight ? "Remove highlight" : "Remove drawing", highlight ? "Quitar resaltado" : "Quitar dibujo", Symbol.Delete, true, () => { Checkpoint(); _markup.Annotations.Remove(mark); RedrawAll(); ScheduleMarkup(); });
+        }
+        if (CanUndo || CanRedo)
+        {
+            menu.Items.Add(new MenuFlyoutSeparator());
+            Add("Undo", "Deshacer", Symbol.Undo, CanUndo, Undo, "Ctrl+Z");
+            Add("Redo", "Rehacer", Symbol.Redo, CanRedo, Redo, "Ctrl+Y");
         }
         if (hasPoint) menu.ShowAt(Pages, position); else menu.ShowAt(this);
         e.Handled = true;
@@ -411,6 +458,8 @@ public sealed partial class PdfViewer
         {
             case VirtualKey.C when control: _ = CopySelectionAsync(); break;
             case VirtualKey.A when control: SelectAll(); break;
+            case VirtualKey.Z when control && !shift: Undo(); break;
+            case VirtualKey.Y when control: case VirtualKey.Z when control: Redo(); break;
             case VirtualKey.Home: GoToPage(1); break;
             case VirtualKey.End: GoToPage(pdf.PageCount); break;
             case VirtualKey.Down when _presentation: case VirtualKey.Right when _presentation: case VirtualKey.Space when _presentation && !shift: GoToPage(_page + 1); break;
@@ -451,7 +500,7 @@ public sealed partial class PdfViewer
             for (var page = 1; page <= pdf.PageCount; page++)
             {
                 if (cancel.IsCancellationRequested) return;
-                try { foreach (var (start, length) in PdfSearch.Find(pdf.GetText(page).Text, query, caseSensitive)) { batch.Add(new(page, start, length)); total++; } }
+                try { foreach (var (start, length) in PdfSearch.Find(ReadText(pdf, page).Text, query, caseSensitive)) { batch.Add(new(page, start, length)); total++; } }
                 catch (ObjectDisposedException) { return; }
                 catch (DocumentException) { }
                 var done = page == pdf.PageCount || total >= MaximumMatches;
@@ -504,6 +553,23 @@ public sealed partial class PdfViewer
         if (vertical is null && horizontal is null) return;
         Scroller.ChangeView(horizontal, vertical, null, true);
         if (vertical is { } target) UpdateView(Math.Min(target, Math.Max(0, Pages.Height - viewportHeight)));
+    }
+
+    // ---- Recognized text -----------------------------------------------------------------
+
+    // A page with no text layer of its own uses what was recognized on it, when there is anything.
+    private PdfPageText ReadText(PdfDocument pdf, int page)
+    {
+        var text = pdf.GetText(page);
+        return _recognized.TryGetValue(page, out var recognized) && !text.Text.Any(char.IsLetterOrDigit) ? recognized : text;
+    }
+
+    /// <summary>Gives a scanned page a text layer from OCR, so it can be selected, copied, highlighted and searched.</summary>
+    public void SetRecognizedText(int page, PdfPageText text)
+    {
+        if (_pdf is not { } pdf || page < 1 || page > pdf.PageCount) return;
+        _recognized[page] = text; _text.Remove(page);
+        if (_realized.TryGetValue(page, out var element)) _ = AttachTextAsync(element);
     }
 
     public void CloseFind()

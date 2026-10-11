@@ -104,8 +104,12 @@ public sealed partial class MainWindow
             MinWidth = 280,
             Header = T("Display language", "Idioma de la interfaz")
         };
+        // Windows only lets the user choose a default app, so this opens the page where Folio can be picked for .pdf.
+        var defaultApp = new HyperlinkButton { Content = T("Open PDF files with Folio by default…", "Abrir los archivos PDF con Folio de forma predeterminada…"), Padding = new Thickness(0) };
+        defaultApp.Click += (_, _) => _ = RunAsync(async () => await Launcher.LaunchUriAsync(App.DefaultAppsUri));
+        var version = new TextBlock { Text = T($"Folio version {App.Version}", $"Folio versión {App.Version}"), FontSize = 12, Opacity = .7, IsTextSelectionEnabled = true };
         var panel = new StackPanel { Spacing = 16 };
-        panel.Children.Add(theme); panel.Children.Add(language);
+        panel.Children.Add(theme); panel.Children.Add(language); panel.Children.Add(defaultApp); panel.Children.Add(version);
         if (await ShowDialogAsync(NewDialog(T("Settings", "Configuración"), panel, T("Apply", "Aplicar"), T("Cancel", "Cancelar"))) == ContentDialogResult.Primary)
         {
             ApplyTheme(theme.SelectedIndex switch { 1 => "Light", 2 => "Dark", _ => "System" });
@@ -132,13 +136,14 @@ public sealed partial class MainWindow
             ("Ctrl+R", "Ctrl+R", "Rotate clockwise", "Girar a la derecha"),
             ("Ctrl+C", "Ctrl+C", "Copy selected text", "Copiar texto seleccionado"),
             ("Ctrl+A", "Ctrl+A", "Select all text", "Seleccionar todo el texto"),
+            ("Ctrl+Z / Ctrl+Y", "Ctrl+Z / Ctrl+Y", "Undo / redo an annotation change", "Deshacer / rehacer un cambio de anotación"),
             ("F11", "F11", "Fullscreen", "Pantalla completa"),
             ("F5", "F5", "Presentation", "Presentación"),
             ("Escape", "Escape", "Exit presentation, fullscreen, or search", "Salir de presentación, pantalla completa o búsqueda")
         ];
         var notes = T(
-            "Use Annotate to add sticky notes, highlights and drawings. They are saved in a separate .folio.json file beside the PDF. Right-click a highlight or drawing to remove it. PDFs stay on this device. Use Read scanned page to extract English or Spanish text locally, one page at a time. Select the result and press Ctrl+C to copy. OCR text is temporary and is not added to the PDF or document-wide search. Existing PDF annotations and form values are shown; filling in forms, editing PDF-native annotations and validating digital signatures are not supported.",
-            "Usa Anotar para agregar notas adhesivas, resaltados y dibujos. Se guardan en un archivo .folio.json separado junto al PDF. Haz clic derecho en un resaltado o dibujo para quitarlo. Los PDF permanecen en este dispositivo. Usa Leer página escaneada para extraer texto en inglés o español de forma local, una página a la vez. Selecciona el resultado y presiona Ctrl+C para copiarlo. El texto OCR es temporal y no se agrega al PDF ni a la búsqueda del documento. Se muestran las anotaciones y los valores de formulario del PDF; no se admite rellenar formularios, editar anotaciones nativas del PDF ni validar firmas digitales.");
+            "Use Annotate to add sticky notes, highlights and drawings. Folio saves them on this device without changing the PDF. Right-click a highlight or drawing to remove it, and use Undo to take back a change. PDFs stay on this device. Use Read scanned page to extract English or Spanish text locally, one page at a time. Select the result and press Ctrl+C to copy. A page read this way can also be selected and searched until the document is closed; nothing is added to the PDF. Existing PDF annotations and form values are shown; filling in forms, editing PDF-native annotations and validating digital signatures are not supported.",
+            "Usa Anotar para agregar notas adhesivas, resaltados y dibujos. Folio las guarda en este dispositivo sin modificar el PDF. Haz clic derecho en un resaltado o dibujo para quitarlo y usa Deshacer para revertir un cambio. Los PDF permanecen en este dispositivo. Usa Leer página escaneada para extraer texto en inglés o español de forma local, una página a la vez. Selecciona el resultado y presiona Ctrl+C para copiarlo. Una página leída así también se puede seleccionar y buscar hasta cerrar el documento; no se agrega nada al PDF. Se muestran las anotaciones y los valores de formulario del PDF; no se admite rellenar formularios, editar anotaciones nativas del PDF ni validar firmas digitales.");
         // A two-column grid keeps the keys aligned; padded text cannot in a proportional font.
         var grid = new Grid { ColumnSpacing = 24, RowSpacing = 8 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -177,6 +182,8 @@ public sealed partial class MainWindow
             case "fitWidth": Fit("page-width"); break;
             case "actualSize": Fit("1"); break;
             case "rotate": if (_state.IsOpen) DocumentView.Rotate(); break;
+            case "undo": DocumentView.Undo(); break;
+            case "redo": DocumentView.Redo(); break;
             case "fullscreen": if (_presentation) SetPresentation(false); else SetFullscreen(!_fullscreen); break;
             case "presentation": SetPresentation(!_presentation); break;
             case "escape":
@@ -205,6 +212,19 @@ public sealed partial class MainWindow
         Add(VirtualKey.Escape, VirtualKeyModifiers.None, "escape");
         Add(VirtualKey.F3, VirtualKeyModifiers.None, "findNext"); Add(VirtualKey.F3, VirtualKeyModifiers.Shift, "findPrevious");
         Add(VirtualKey.PageDown, VirtualKeyModifiers.None, "next"); Add(VirtualKey.PageUp, VirtualKeyModifiers.None, "previous");
+        // Undo and redo reach the annotations from anywhere in the window, except while typing: text boxes keep their own undo.
+        void AddHistory(VirtualKey key, VirtualKeyModifiers modifiers, string action)
+        {
+            var accelerator = new KeyboardAccelerator { Key = key, Modifiers = modifiers };
+            accelerator.Invoked += (sender, args) =>
+            {
+                if (FocusManager.GetFocusedElement(Root.XamlRoot) is TextBox or PasswordBox) return;
+                args.Handled = true; _ = RunAsync(() => ActionAsync(action));
+            };
+            Root.KeyboardAccelerators.Add(accelerator);
+        }
+        AddHistory(VirtualKey.Z, VirtualKeyModifiers.Control, "undo"); AddHistory(VirtualKey.Y, VirtualKeyModifiers.Control, "redo");
+        AddHistory(VirtualKey.Z, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift, "redo");
     }
     private void Thumbnails_ContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
     {

@@ -41,6 +41,7 @@ public sealed partial class MainWindow : Window
         DocumentView.Warning += message => ShowWarning(TranslateKnown(message));
         DocumentView.MarkupChanged += () => _ = RunAsync(SaveMarkupAsync);
         DocumentView.ToolChanged += UpdateAnnotationPanel;
+        DocumentView.HistoryChanged += UpdateAnnotationPanel;
         DocumentView.ExitPresentationRequested += () => SetPresentation(false);
         ExtendsContentIntoTitleBar = true; SetTitleBar(AppTitleBar);
         AppWindow.TitleBar.PreferredHeightOption = Microsoft.UI.Windowing.TitleBarHeightOption.Tall;
@@ -81,7 +82,7 @@ public sealed partial class MainWindow : Window
         {
             Welcome.SetRecent(_settings.Data.Recent);
             if (_settings.LastError is { } warning) ShowWarning(TranslateKnown(warning));
-            var path = Environment.GetCommandLineArgs().Skip(1).FirstOrDefault(p => !p.StartsWith("--", StringComparison.Ordinal));
+            var path = Environment.GetCommandLineArgs().Skip(1).FirstOrDefault(p => !p.StartsWith("--", StringComparison.Ordinal)) ?? App.ActivatedFile;
             if (path is not null) await OpenDocumentAsync(path);
         });
     }

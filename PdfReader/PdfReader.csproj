@@ -27,4 +27,14 @@
     <Content Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" />
     <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
+  <!-- The version shown in Settings comes from the packaging manifest, so there is one place to bump it.
+       An installed package reports it at run time; this stamps the same value for unpackaged runs. -->
+  <Target Name="StampPackageVersion" BeforeTargets="GetAssemblyAttributes" Condition="Exists('..\Instalador\Package.appxmanifest')">
+    <XmlPeek XmlInputPath="..\Instalador\Package.appxmanifest" Query="/m:Package/m:Identity/@Version" Namespaces="&lt;Namespace Prefix='m' Uri='http://schemas.microsoft.com/appx/manifest/foundation/windows10' /&gt;">
+      <Output TaskParameter="Result" PropertyName="PackageManifestVersion" />
+    </XmlPeek>
+    <ItemGroup>
+      <AssemblyMetadata Include="PackageVersion" Value="$(PackageManifestVersion)" />
+    </ItemGroup>
+  </Target>
 </Project>
