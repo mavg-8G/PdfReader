@@ -7,10 +7,6 @@ $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 Push-Location $repo
 try {
-    node --use-system-ca scripts/setup-viewer.mjs
-    if ($LASTEXITCODE -ne 0) { throw 'Viewer setup failed.' }
-    node --use-system-ca scripts/setup-ocr.mjs
-    if ($LASTEXITCODE -ne 0) { throw 'OCR setup failed.' }
     dotnet restore PdfReader/PdfReader.csproj --configfile NuGet.Config -p:Platform=$Platform
     if ($LASTEXITCODE -ne 0) { throw 'NuGet restore failed.' }
     if ($Publish) {

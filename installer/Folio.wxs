@@ -14,18 +14,6 @@
     </Property>
     <Launch Condition="Installed OR (VersionNT64 AND WINDOWSBUILDNUMBER &gt;= 19041)"
             Message="Folio requires 64-bit Windows 10 version 2004 (build 19041) or newer." />
-    <Property Id="WEBVIEW2MACHINE" Secure="yes">
-      <RegistrySearch Id="WebViewMachineSearch" Root="HKLM"
-                      Key="SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
-                      Name="pv" Type="raw" Bitness="always32" />
-    </Property>
-    <Property Id="WEBVIEW2USER" Secure="yes">
-      <RegistrySearch Id="WebViewUserSearch" Root="HKCU"
-                      Key="SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
-                      Name="pv" Type="raw" Bitness="always32" />
-    </Property>
-    <Launch Condition="Installed OR (WEBVIEW2MACHINE AND WEBVIEW2MACHINE &lt;&gt; &quot;0.0.0.0&quot;) OR (WEBVIEW2USER AND WEBVIEW2USER &lt;&gt; &quot;0.0.0.0&quot;)"
-            Message="Install Microsoft Edge WebView2 Evergreen Runtime, then run Folio Setup again. Get the runtime at https://developer.microsoft.com/microsoft-edge/webview2/ . Visual Studio and the .NET SDK are not required." />
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="Folio" />

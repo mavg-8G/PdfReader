@@ -8,7 +8,6 @@ public partial class App : Application
     public App()
     {
         Directory.CreateDirectory(DataFolder);
-        Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER", Path.Combine(DataFolder, "WebView2"));
         InitializeComponent();
     }
     protected override void OnLaunched(LaunchActivatedEventArgs args)

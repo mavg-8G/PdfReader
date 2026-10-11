@@ -12,18 +12,19 @@ public sealed partial class MainWindow : Window
 {
     private readonly ReaderState _state = new();
     private readonly SettingsStore _settings;
-    private readonly ViewerHost _host;
-    private readonly DispatcherQueueTimer _saveTimer, _searchTimer, _openTimer;
-    private readonly TaskCompletionSource _viewerReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly PrintService _print;
+    private readonly DispatcherQueueTimer _saveTimer, _searchTimer;
     private readonly List<ThumbnailItem> _thumbnails = [];
+    private readonly List<ThumbnailItem> _thumbnailQueue = [];
+    private DocumentSession? _document;
+    private PdfDocument? _pdf;
     private DocumentMarkupStore? _markupStore;
     private readonly LinkedList<int> _thumbnailCache = [];
-    private bool _initialized, _busy, _printing, _syncing, _closing, _closed, _presentation, _fullscreen, _canPrint;
+    private bool _initialized, _busy, _printing, _syncing, _closing, _closed, _presentation, _fullscreen, _canPrint, _thumbnailPump;
     private bool _dialogOpen, _sidebarWanted = true;
     private string _language = "en";
     private ContentDialog? _activeDialog;
-    private string? _pendingPath;
-    private CancellationTokenSource? _opening;
+    private CancellationTokenSource? _opening, _printCancel, _ocrCancel;
     public MainWindow()
     {
         _settings = new SettingsStore(Path.Combine(App.DataFolder, "settings.json"));
@@ -34,10 +35,13 @@ public sealed partial class MainWindow : Window
         _sidebarWanted = _settings.Data.SidebarOpen;
         InitializeComponent();
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "Folio.ico"));
-        _host = new ViewerHost(DocumentView);
-        _host.Message += message => _ = RunAsync(() => ReceiveAsync(message));
-        _host.Failed += message => { _viewerReady.TrySetException(new InvalidOperationException(message)); ShowError(T("Viewer unavailable", "Visor no disponible"), TranslateKnown(message)); EndBusy(); };
-        _host.FileDropped += path => _ = RunAsync(() => OpenDocumentAsync(path));
+        _print = new PrintService(this);
+        DocumentView.StateChanged += OnViewerState;
+        DocumentView.SearchChanged += OnSearchStatus;
+        DocumentView.Warning += message => ShowWarning(TranslateKnown(message));
+        DocumentView.MarkupChanged += () => _ = RunAsync(SaveMarkupAsync);
+        DocumentView.ToolChanged += UpdateAnnotationPanel;
+        DocumentView.ExitPresentationRequested += () => SetPresentation(false);
         ExtendsContentIntoTitleBar = true; SetTitleBar(AppTitleBar);
         AppWindow.TitleBar.PreferredHeightOption = Microsoft.UI.Windowing.TitleBarHeightOption.Tall;
         AppWindow.TitleBar.ButtonBackgroundColor = Colors.Transparent;
@@ -50,24 +54,24 @@ public sealed partial class MainWindow : Window
         _saveTimer.Tick += (_, _) => { _saveTimer.Stop(); _ = PersistAsync(); };
         _searchTimer = DispatcherQueue.CreateTimer(); _searchTimer.Interval = TimeSpan.FromMilliseconds(200);
         _searchTimer.Tick += (_, _) => { _searchTimer.Stop(); Find(false, false); };
-        _openTimer = DispatcherQueue.CreateTimer(); _openTimer.Interval = TimeSpan.FromSeconds(60);
-        _openTimer.Tick += (_, _) => { _openTimer.Stop(); ShowError(T("This PDF is taking too long", "Este PDF está tardando demasiado"), T("Opening was stopped. Try a smaller file or obtain a new copy of this PDF.", "Se detuvo la apertura. Prueba con un archivo más pequeño u obtén una copia nueva del PDF.")); CloseDocument(); };
         Welcome.OpenRequested += () => _ = RunAsync(OpenPickerAsync);
         Welcome.RecentRequested += path => _ = RunAsync(() => OpenDocumentAsync(path));
         Welcome.ClearRequested += () => { _settings.Data.Recent.Clear(); Welcome.SetRecent(_settings.Data.Recent); _ = PersistAsync(); };
         Welcome.RemoveRequested += path => { _settings.Data.Recent.RemoveAll(r => r.Path == path); Welcome.SetRecent(_settings.Data.Recent); _ = PersistAsync(); };
-        Root.ActualThemeChanged += (_, _) => SendTheme();
         AddShortcuts();
         AppWindow.Closing += async (_, args) =>
         {
             if (_closing) return;
             args.Cancel = true; _closing = true; _activeDialog?.Hide();
+            // Pending annotation edits are written before the window goes away.
+            DocumentView.FlushMarkup();
             await PersistAsync(); Close();
         };
         Closed += (_, _) =>
         {
-            _closed = true; _saveTimer.Stop(); _searchTimer.Stop(); _openTimer.Stop();
-            _opening?.Cancel(); _host.Dispose();
+            _closed = true; _saveTimer.Stop(); _searchTimer.Stop();
+            _opening?.Cancel(); _printCancel?.Cancel(); _ocrCancel?.Cancel();
+            DocumentView.Close(); _pdf?.Dispose(); _document?.Dispose(); _pdf = null; _document = null;
         };
     }
     private async void Root_Loaded(object sender, RoutedEventArgs e)
@@ -77,9 +81,7 @@ public sealed partial class MainWindow : Window
         {
             Welcome.SetRecent(_settings.Data.Recent);
             if (_settings.LastError is { } warning) ShowWarning(TranslateKnown(warning));
-            await _host.InitializeAsync();
-            await _viewerReady.Task.WaitAsync(TimeSpan.FromSeconds(30)); SendTheme(); SendLanguage();
-            var path = _pendingPath ?? Environment.GetCommandLineArgs().Skip(1).FirstOrDefault(p => !p.StartsWith("--", StringComparison.Ordinal));
+            var path = Environment.GetCommandLineArgs().Skip(1).FirstOrDefault(p => !p.StartsWith("--", StringComparison.Ordinal));
             if (path is not null) await OpenDocumentAsync(path);
         });
     }
@@ -97,7 +99,6 @@ public sealed partial class MainWindow : Window
                 DirectoryNotFoundException => (T("This folder is unavailable", "Esta carpeta no está disponible"), T("Reconnect the device or choose the PDF from another folder.", "Vuelve a conectar el dispositivo o elige el PDF desde otra carpeta.")),
                 UnauthorizedAccessException => (T("Access to this file was denied", "Se denegó el acceso a este archivo"), T("Choose a file or folder you have permission to use.", "Elige un archivo o una carpeta para los que tengas permiso.")),
                 IOException => (T("The file could not be accessed", "No se pudo acceder al archivo"), T("It may be in use, unavailable, or the device may be full. Check the file and try again.", "Puede estar en uso, no disponible o el dispositivo puede estar lleno. Comprueba el archivo e inténtalo de nuevo.")),
-                TimeoutException => (T("The viewer did not respond", "El visor no respondió"), T("Restart Folio. If the issue continues, repair the Microsoft Edge WebView2 Runtime.", "Reinicia Folio. Si el problema continúa, repara Microsoft Edge WebView2 Runtime.")),
                 _ => (T("The action could not be completed", "No se pudo completar la acción"), TranslateKnown(ex.Message))
             };
             ShowError(title, message); EndBusy();

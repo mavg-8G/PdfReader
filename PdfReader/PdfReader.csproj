@@ -11,6 +11,8 @@
     <UseWinUI>true</UseWinUI>
     <WinUISDKReferences>false</WinUISDKReferences>
     <WindowsPackageType>None</WindowsPackageType>
+    <!-- Without this, dotnet publish leaves PdfReader.pri out and the published app cannot load its XAML. -->
+    <EnableMsixTooling>true</EnableMsixTooling>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -22,12 +24,7 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
     <ProjectReference Include="..\PdfReader.Core\PdfReader.Core.csproj" />
-    <Content Include="Viewer\**\*" Exclude="Viewer\**\*.map;Viewer\vendor\**\*.ts" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" />
     <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
-  <Target Name="CheckViewerAssets" BeforeTargets="PrepareForBuild">
-    <Error Condition="!Exists('Viewer\vendor\build\pdf.mjs')" Text="Run: node --use-system-ca scripts/setup-viewer.mjs (from the repository root)." />
-    <Error Condition="!Exists('Viewer\ocr-vendor\.version')" Text="Run: node --use-system-ca scripts/setup-ocr.mjs (from the repository root)." />
-  </Target>
 </Project>

@@ -1,0 +1,41 @@
+<UserControl
+    x:Class="PdfReader.Controls.PdfViewer"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    IsTabStop="True"
+    UseSystemFocusVisuals="False">
+    <Grid x:Name="Surface" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}">
+        <Border x:Name="PresentationBackdrop" Background="#FF141519" Visibility="Collapsed"/>
+        <ScrollViewer
+            x:Name="Scroller"
+            IsTabStop="False"
+            ZoomMode="Disabled"
+            HorizontalScrollBarVisibility="Auto"
+            VerticalScrollBarVisibility="Auto"
+            ViewChanged="Scroller_ViewChanged"
+            SizeChanged="Scroller_SizeChanged">
+            <Canvas
+                x:Name="Pages"
+                Background="Transparent"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                PointerPressed="Pages_PointerPressed"
+                PointerMoved="Pages_PointerMoved"
+                PointerReleased="Pages_PointerReleased"
+                PointerCanceled="Pages_PointerReleased"
+                PointerCaptureLost="Pages_PointerReleased"
+                PointerWheelChanged="Pages_PointerWheelChanged"
+                DoubleTapped="Pages_DoubleTapped"
+                ContextRequested="Pages_ContextRequested"/>
+        </ScrollViewer>
+        <Button
+            x:Name="ExitPresentationButton"
+            Visibility="Collapsed"
+            Opacity=".5"
+            Margin="0,0,24,20"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom"
+            RequestedTheme="Dark"
+            Click="ExitPresentation_Click"/>
+    </Grid>
+</UserControl>

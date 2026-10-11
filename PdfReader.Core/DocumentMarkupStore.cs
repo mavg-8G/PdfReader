@@ -49,7 +49,11 @@ public sealed class DocumentMarkupStore(DocumentSession document)
         catch (JsonException) { return "Annotations could not be saved because their data is invalid."; }
         if (markup is null || markup.Version != 1)
             return "Annotations could not be saved because their data is invalid.";
+        return await SaveAsync(markup, cancellationToken);
+    }
 
+    public async Task<string?> SaveAsync(DocumentMarkup markup, CancellationToken cancellationToken = default)
+    {
         await _gate.WaitAsync(cancellationToken);
         var temporary = Path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try

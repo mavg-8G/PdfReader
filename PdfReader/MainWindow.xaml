@@ -3,6 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:views="using:PdfReader.Views"
+    xmlns:controls="using:PdfReader.Controls"
     Title="Folio">
     <Window.SystemBackdrop>
         <MicaBackdrop Kind="Base"/>
@@ -149,7 +150,61 @@
                             </ListView>
                         </Grid>
                     </SplitView.Pane>
-                    <WebView2 x:Name="DocumentView" DefaultBackgroundColor="Transparent"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <controls:PdfViewer x:Name="DocumentView"/>
+                        <Border
+                            x:Name="SidePanel"
+                            Grid.Column="1"
+                            Visibility="Collapsed"
+                            Width="340"
+                            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                            BorderThickness="1,0,0,0"
+                            Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}">
+                            <Grid>
+                                <ScrollViewer x:Name="OcrPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                                    <StackPanel Padding="20,12,20,20" Spacing="12">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <TextBlock x:Name="OcrHeading" Text="Read scanned page" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                            <Button x:Name="OcrCloseButton" Grid.Column="1" Click="ClosePanel_Click" Style="{StaticResource QuietButton}"><FontIcon Glyph="&#xE711;" FontSize="12"/></Button>
+                                        </Grid>
+                                        <TextBlock x:Name="OcrDescription" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <ComboBox x:Name="OcrLanguageBox" HorizontalAlignment="Stretch" SelectedIndex="0">
+                                            <ComboBoxItem x:Name="OcrEnglishItem" Content="English" Tag="en"/>
+                                            <ComboBoxItem x:Name="OcrSpanishItem" Content="Español" Tag="es"/>
+                                        </ComboBox>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Button x:Name="OcrReadButton" Style="{StaticResource AccentButtonStyle}" Click="OcrRead_Click"/>
+                                            <Button x:Name="OcrCancelButton" Visibility="Collapsed" Click="OcrCancel_Click"/>
+                                        </StackPanel>
+                                        <ProgressBar x:Name="OcrProgress" IsIndeterminate="True" Visibility="Collapsed"/>
+                                        <TextBlock x:Name="OcrStatus" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" AutomationProperties.LiveSetting="Polite"/>
+                                        <TextBox x:Name="OcrText" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" IsSpellCheckEnabled="False" MinHeight="180" MaxHeight="380" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+                                        <Button x:Name="OcrCopyButton" IsEnabled="False" Click="OcrCopy_Click"/>
+                                        <TextBlock x:Name="OcrNote" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                </ScrollViewer>
+                                <ScrollViewer x:Name="AnnotationPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                                    <StackPanel Padding="20,12,20,20" Spacing="12">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <TextBlock x:Name="AnnotationHeading" Text="Annotations" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                            <Button x:Name="AnnotationCloseButton" Grid.Column="1" Click="ClosePanel_Click" Style="{StaticResource QuietButton}"><FontIcon Glyph="&#xE711;" FontSize="12"/></Button>
+                                        </Grid>
+                                        <TextBlock x:Name="AnnotationDescription" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <ToggleButton x:Name="NoteToolButton" Click="NoteTool_Click"/>
+                                            <ToggleButton x:Name="DrawToolButton" Click="DrawTool_Click"/>
+                                        </StackPanel>
+                                        <TextBox x:Name="NoteTextBox" AcceptsReturn="True" TextWrapping="Wrap" MaxLength="5000" MinHeight="80" MaxHeight="200" TextChanged="NoteText_Changed"/>
+                                        <Button x:Name="HighlightButton" Click="Highlight_Click"/>
+                                        <TextBlock x:Name="AnnotationStatus" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" AutomationProperties.LiveSetting="Polite"/>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </SplitView>
                 <views:WelcomeView x:Name="Welcome" Background="Transparent"/>
 

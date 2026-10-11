@@ -26,6 +26,11 @@
           "Microsoft.WindowsAppSDK.WinUI": "2.3.9"
         }
       },
+      "bblanchon.PDFium.Win32": {
+        "type": "Transitive",
+        "resolved": "157.0.8086",
+        "contentHash": "cu9ozLzwk0O329oXcF1XVg8tsc2q4BzavKBzOMnkRWWNlFWjiw8uBZWrt5W5NDlHOy1Yb+uIBPAn7YYJaf+7Yg=="
+      },
       "Microsoft.Web.WebView2": {
         "type": "Transitive",
         "resolved": "1.0.3719.77",
@@ -140,10 +145,18 @@
         "contentHash": "hyJB4UlpAi19Xr9AXzu2NuagKC4lPfHObNMEAA0HmqFz2rX7wKgzeYzO/jM/eBHDhnUGFFEjk5cOoJaxqg5J4A=="
       },
       "pdfreader.core": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "bblanchon.PDFium.Win32": "[157.0.8086, )"
+        }
       }
     },
     "net10.0-windows10.0.26100/win-arm64": {
+      "bblanchon.PDFium.Win32": {
+        "type": "Transitive",
+        "resolved": "157.0.8086",
+        "contentHash": "cu9ozLzwk0O329oXcF1XVg8tsc2q4BzavKBzOMnkRWWNlFWjiw8uBZWrt5W5NDlHOy1Yb+uIBPAn7YYJaf+7Yg=="
+      },
       "Microsoft.Web.WebView2": {
         "type": "Transitive",
         "resolved": "1.0.3719.77",
@@ -168,6 +181,11 @@
       }
     },
     "net10.0-windows10.0.26100/win-x64": {
+      "bblanchon.PDFium.Win32": {
+        "type": "Transitive",
+        "resolved": "157.0.8086",
+        "contentHash": "cu9ozLzwk0O329oXcF1XVg8tsc2q4BzavKBzOMnkRWWNlFWjiw8uBZWrt5W5NDlHOy1Yb+uIBPAn7YYJaf+7Yg=="
+      },
       "Microsoft.Web.WebView2": {
         "type": "Transitive",
         "resolved": "1.0.3719.77",

@@ -58,7 +58,8 @@ public sealed partial class MainWindow
 
         AutomationProperties.SetName(SearchBox, T("Search document text", "Buscar texto en el documento"));
         AutomationProperties.SetName(Thumbnails, T("Page thumbnails", "Miniaturas de páginas"));
-        AutomationProperties.SetName(DocumentView, T("PDF document canvas", "Área del documento PDF"));
+        AutomationProperties.SetName(DocumentView, T("PDF document. Select text to copy. Use Page Up and Page Down to navigate.", "Documento PDF. Selecciona texto para copiar. Usa Re Pág y Av Pág para navegar."));
+        DocumentView.UiLanguage = _language; ApplyPanelLanguage();
         AutomationProperties.SetName(LoadingBar, T("PDF loading progress", "Progreso de carga del PDF"));
 
         if (!_state.IsOpen)
@@ -70,7 +71,6 @@ public sealed partial class MainWindow
         {
             UpdateDocumentStatus();
         }
-        SendLanguage();
     }
 
     private void Tip(DependencyObject element, string english, string spanish, string? automationEnglish = null, string? automationSpanish = null)
@@ -81,7 +81,7 @@ public sealed partial class MainWindow
 
     private void UpdateDocumentStatus()
     {
-        if (!_state.IsOpen || _host.Document is not { } document) return;
+        if (!_state.IsOpen || _document is not { } document) return;
         StatusText.Text = T(
             $"{_state.PageCount:N0} pages · {FormatSize(document.Length)} · Select text to copy",
             $"{_state.PageCount:N0} páginas · {FormatSize(document.Length)} · Selecciona texto para copiar");
@@ -131,6 +131,14 @@ public sealed partial class MainWindow
             "Enter a valid last page." => "Introduce una última página válida.",
             "Print up to 100 pages per batch." => "Imprime hasta 100 páginas por lote.",
             "Enter at least one page to print." => "Introduce al menos una página para imprimir.",
+            "Annotations could not be saved. Check folder permissions and available space." => "No se pudieron guardar las anotaciones. Comprueba los permisos de la carpeta y el espacio disponible.",
+            "Annotations could not be saved because they are too large." => "No se pudieron guardar las anotaciones porque son demasiado grandes.",
+            "Annotations could not be saved because their data is invalid." => "No se pudieron guardar las anotaciones porque sus datos no son válidos.",
+            "Copying is restricted by this document’s permissions." => "Los permisos de este documento restringen la copia.",
+            "The clipboard is busy. Try copying again." => "El portapapeles está ocupado. Intenta copiar de nuevo.",
+            "This document has reached the limit of 500 annotations." => "Este documento alcanzó el límite de 500 anotaciones.",
+            "This document exceeds the 100,000-page safety limit." => "Este documento supera el límite de seguridad de 100 000 páginas.",
+            "Unable to prepare printing" => "No se pudo preparar la impresión",
             _ => value
         };
     }

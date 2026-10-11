@@ -122,6 +122,75 @@ AsyncTest("Unwritable preferences produce an actionable failure", async () =>
     var folder=Path.Combine(root,"blocked"); await File.WriteAllTextAsync(folder,"occupied");
     var store=new SettingsStore(Path.Combine(folder,"settings.json")); Equal(false,await store.SaveAsync()); Equal(true,store.LastError is not null);
 });
+// The PDFium tests read the checked-in fixtures; they are found by walking up from the test binary.
+var fixtures = AppContext.BaseDirectory;
+while (fixtures is not null && !Directory.Exists(Path.Combine(fixtures, "tests", "fixtures"))) fixtures = Path.GetDirectoryName(fixtures);
+fixtures = fixtures is null ? throw new DirectoryNotFoundException("tests/fixtures was not found above the test binary.") : Path.Combine(fixtures, "tests", "fixtures");
+AsyncTest("PDFium reads page count, size and permissions", async () =>
+{
+    using var session = await DocumentSession.OpenAsync(Path.Combine(fixtures, "reading-notes.pdf")); using var pdf = PdfDocument.Open(session);
+    Equal(3, pdf.PageCount); Equal(new PdfSize(612, 792), pdf.GetPageSize(1)); Equal(true, pdf.CanPrint); Equal(true, pdf.CanCopy);
+});
+AsyncTest("PDFium renders a page into a BGRA buffer", async () =>
+{
+    using var session = await DocumentSession.OpenAsync(Path.Combine(fixtures, "reading-notes.pdf")); using var pdf = PdfDocument.Open(session);
+    var pixels = new byte[153 * 198 * 4]; pdf.Render(1, 0, 153, 198, pixels);
+    Equal(true, pixels.Chunk(4).All(pixel => pixel[3] == 255));
+    // The fixture paints a dark blue banner near the top over a pale page.
+    Equal(true, pixels.Chunk(4).Any(pixel => pixel[0] > 150 && pixel[2] < 100));
+    var rotated = new byte[198 * 153 * 4]; pdf.Render(1, 90, 198, 153, rotated);
+    Equal(false, pixels.AsSpan().SequenceEqual(rotated));
+});
+AsyncTest("PDFium text has one box per character in display fractions", async () =>
+{
+    using var session = await DocumentSession.OpenAsync(Path.Combine(fixtures, "reading-notes.pdf")); using var pdf = PdfDocument.Open(session);
+    var text = pdf.GetText(2);
+    Equal(text.Text.Length, text.Boxes.Length); Equal(true, text.Text.Contains("Chapter 2 - The art of paying attention"));
+    var match = PdfSearch.Find(text.Text, "a little ROOM", false).Single();
+    var rect = text.GetRects(match.Start, match.Length).Single();
+    // "A little room to think." is set at 34 pt, 612 pt up a 792 pt page.
+    Equal(true, rect.X is > .07 and < .09 && rect.Y is > .17 and < .23 && rect.Height is > .02 and < .06);
+    Equal(match.Start, text.CharacterAt(rect.X + .001, rect.Y + rect.Height / 2));
+    Equal(true, text.IsOverText(rect.X + .01, rect.Y + rect.Height / 2)); Equal(false, text.IsOverText(.99, .99));
+});
+AsyncTest("PDFium asks for a password and reports a wrong one", async () =>
+{
+    using var session = await DocumentSession.OpenAsync(Path.Combine(fixtures, "password.pdf"));
+    try { PdfDocument.Open(session).Dispose(); throw new Exception("Expected a password request"); } catch (PdfPasswordException ex) { Equal(false, ex.Incorrect); }
+    try { PdfDocument.Open(session, "wrong").Dispose(); throw new Exception("Expected a rejected password"); } catch (PdfPasswordException ex) { Equal(true, ex.Incorrect); }
+    using var pdf = PdfDocument.Open(session, "folio-test");
+    Equal(2, pdf.PageCount); Equal(true, pdf.GetText(1).Text.Contains("A little room to think."));
+});
+AsyncTest("PDFium honors print and copy restrictions", async () =>
+{
+    using var session = await DocumentSession.OpenAsync(Path.Combine(fixtures, "restricted.pdf")); using var pdf = PdfDocument.Open(session, "folio-test");
+    Equal(false, pdf.CanPrint); Equal(false, pdf.CanCopy);
+});
+AsyncTest("PDFium rejects a damaged PDF", async () =>
+{
+    using var session = await DocumentSession.OpenAsync(Path.Combine(fixtures, "corrupted.pdf"));
+    Throws<DocumentException>(() => PdfDocument.Open(session).Dispose());
+});
+AsyncTest("PDFium calls fail cleanly after the document is closed", async () =>
+{
+    using var session = await DocumentSession.OpenAsync(Path.Combine(fixtures, "reading-notes.pdf")); var pdf = PdfDocument.Open(session);
+    pdf.Dispose(); pdf.Dispose();
+    Throws<ObjectDisposedException>(() => pdf.GetText(1));
+});
+Test("Search ignores case, accents and line breaks", () =>
+{
+    const string text = "Página uno\r\ncontinúa aquí. PÁGINA";
+    Equal("0:6,27:6", string.Join(',', PdfSearch.Find(text, "pagina", false).Select(m => $"{m.Start}:{m.Length}")));
+    Equal("7:13", string.Join(',', PdfSearch.Find(text, "uno continua", false).Select(m => $"{m.Start}:{m.Length}")));
+    Equal(1, PdfSearch.Find(text, "Pagina", true).Count); Equal(0, PdfSearch.Find(text, "   ", false).Count); Equal(0, PdfSearch.Find(text, "missing", false).Count);
+});
+Test("Text runs merge per line", () =>
+{
+    var text = new PdfPageText("ab\ncd", [new(.1, .1, .02, .02), new(.12, .1, .02, .02), default, new(.1, .2, .02, .02), new(.12, .2, .02, .02)]);
+    var rects = text.GetRects(0, 5);
+    Equal(2, rects.Count); Equal(true, Math.Abs(rects[0].Width - .04) < 1e-9 && Math.Abs(rects[1].Y - .2) < 1e-9);
+    Equal(4, text.CharacterAt(.5, .5)); Equal(-1, PdfPageText.Empty.CharacterAt(.5, .5));
+});
 var failed=0;
 foreach(var test in tests) { try { await test.Run(); Console.WriteLine($"PASS {test.Name}"); } catch(Exception ex) { failed++; Console.Error.WriteLine($"FAIL {test.Name}: {ex.Message}"); } }
 Console.WriteLine($"{tests.Count-failed}/{tests.Count} core tests passed.");

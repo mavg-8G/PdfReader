@@ -3,5 +3,10 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Native PDFium binaries only (x64 and ARM64). The bindings live in PdfiumNative.cs. -->
+    <PackageReference Include="bblanchon.PDFium.Win32" Version="157.0.8086" />
+  </ItemGroup>
 </Project>

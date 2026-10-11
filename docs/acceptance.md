@@ -2,7 +2,7 @@
 
 Automated tests verify the engine and core services. Before distributing a release, validate the following on each supported Windows architecture and on the intended printer drivers:
 
-- Launch the unpackaged profile from Visual Studio and launch the published executable on a machine without the .NET SDK. Check missing-WebView2 guidance.
+- Launch the unpackaged profile from Visual Studio and launch the published executable on a machine without the .NET SDK. Confirm it starts on a machine without the WebView2 Runtime.
 - Open `tests/fixtures/reading-notes.pdf` with the native picker. Drop it onto both the welcome screen and the document canvas. Drop a folder, multiple files, a renamed text file and a corrupted PDF; check recovery.
 - Navigate, select/copy text into Notepad, search `Focus`, move forward/back through six matches, test match case and a missing query. Check Ctrl+O/F/G/S/P/W, Ctrl+plus/minus, F3, F5, F11 and Escape.
 - Open `password.pdf`, enter a wrong password, then `folio-test`; cancel a password prompt. Check that no password appears in settings. For `restricted.pdf`, printing must be disabled.

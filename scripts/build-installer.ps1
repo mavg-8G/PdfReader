@@ -27,10 +27,6 @@ try {
         } finally { Pop-Location }
     }
     if (!$SkipPublish) {
-        node --use-system-ca scripts/setup-viewer.mjs
-        if ($LASTEXITCODE -ne 0) { throw 'PDF renderer setup failed.' }
-        node --use-system-ca scripts/setup-ocr.mjs
-        if ($LASTEXITCODE -ne 0) { throw 'OCR setup failed.' }
         # A fresh staging folder prevents obsolete build artifacts entering the MSI.
         if (Test-Path -LiteralPath $publishDir) {
             $resolvedPublish = (Resolve-Path -LiteralPath $publishDir).Path
@@ -43,7 +39,7 @@ try {
         dotnet publish PdfReader/PdfReader.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true --no-restore -p:WindowsAppSDKSelfContained=true -p:DebugType=None -p:DebugSymbols=false "-p:Version=$Version" -o $publishDir
         if ($LASTEXITCODE -ne 0) { throw 'Publishing Folio failed.' }
     }
-    foreach ($required in @('PdfReader.exe','PdfReader.runtimeconfig.json','coreclr.dll','Microsoft.UI.Xaml.dll','Assets/Folio.ico','Viewer/vendor/build/pdf.mjs','Viewer/ocr-vendor/worker.min.js','Viewer/ocr-vendor/eng.traineddata.gz','Viewer/ocr-vendor/spa.traineddata.gz')) {
+    foreach ($required in @('PdfReader.exe','PdfReader.runtimeconfig.json','coreclr.dll','Microsoft.UI.Xaml.dll','Assets/Folio.ico','pdfium.dll')) {
         if (!(Test-Path -LiteralPath (Join-Path $publishDir $required))) { throw "Missing installer payload: $required" }
     }
     $config = Get-Content -LiteralPath (Join-Path $publishDir 'PdfReader.runtimeconfig.json') -Raw | ConvertFrom-Json
