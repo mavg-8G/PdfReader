@@ -1,13 +1,16 @@
 param(
     [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '1.0.0',
+    [ValidateSet('x86','x64','ARM64')][string]$Platform = 'x64',
     [switch]$SkipPublish
 )
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 $wixVersion = '5.0.2'
+$architecture = $Platform.ToLowerInvariant()
+$rid = "win-$architecture"
 $toolDir = Join-Path $repo '.cache/wix'
 $wix = Join-Path $toolDir 'wix.exe'
-$publishDir = Join-Path $repo 'artifacts/installer-publish/win-x64'
+$publishDir = Join-Path $repo "artifacts/installer-publish/$rid"
 $outputDir = Join-Path $repo 'artifacts/installer'
 $extension = Join-Path $toolDir ".wix/extensions/WixToolset.UI.wixext/$wixVersion/wixext5/WixToolset.UI.wixext.dll"
 $savedRollForward = $env:DOTNET_ROLL_FORWARD
@@ -30,13 +33,13 @@ try {
         # A fresh staging folder prevents obsolete build artifacts entering the MSI.
         if (Test-Path -LiteralPath $publishDir) {
             $resolvedPublish = (Resolve-Path -LiteralPath $publishDir).Path
-            $expectedPublish = [IO.Path]::GetFullPath((Join-Path $repo 'artifacts/installer-publish/win-x64'))
+            $expectedPublish = [IO.Path]::GetFullPath((Join-Path $repo "artifacts/installer-publish/$rid"))
             if ($resolvedPublish -ne $expectedPublish -or !(($resolvedPublish + '\').StartsWith($repo + '\', [StringComparison]::OrdinalIgnoreCase))) { throw 'Unexpected installer staging path.' }
             Remove-Item -LiteralPath $resolvedPublish -Recurse -Force
         }
-        dotnet restore PdfReader/PdfReader.csproj --configfile (Join-Path $repo 'NuGet.Config') -p:Platform=x64 -r win-x64
+        dotnet restore PdfReader/PdfReader.csproj --configfile (Join-Path $repo 'NuGet.Config') -p:Platform=$Platform -r $rid
         if ($LASTEXITCODE -ne 0) { throw 'Restore failed.' }
-        dotnet publish PdfReader/PdfReader.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true --no-restore -p:WindowsAppSDKSelfContained=true -p:DebugType=None -p:DebugSymbols=false "-p:Version=$Version" -o $publishDir
+        dotnet publish PdfReader/PdfReader.csproj -c Release -p:Platform=$Platform -r $rid --self-contained true --no-restore -p:WindowsAppSDKSelfContained=true -p:DebugType=None -p:DebugSymbols=false "-p:Version=$Version" -o $publishDir
         if ($LASTEXITCODE -ne 0) { throw 'Publishing Folio failed.' }
     }
     foreach ($required in @('PdfReader.exe','PdfReader.runtimeconfig.json','coreclr.dll','Microsoft.UI.Xaml.dll','Assets/Folio.ico','pdfium.dll')) {
@@ -47,10 +50,10 @@ try {
     $payloadVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $publishDir 'PdfReader.exe')).ProductVersion.Split('+')[0]
     if ([version]$payloadVersion -ne [version]$Version) { throw "Published app version $payloadVersion does not match MSI version $Version. Run without -SkipPublish." }
     New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
-    $msi = Join-Path $outputDir "Folio-$Version-x64.msi"
-    & $wix build installer/Folio.wxs -arch x64 -ext $extension "-d" "Version=$Version" "-d" "PublishDir=$publishDir" -pdbtype none -intermediatefolder (Join-Path $repo '.cache/installer-build') -out $msi
+    $msi = Join-Path $outputDir "Folio-$Version-$architecture.msi"
+    & $wix build installer/Folio.wxs -arch $architecture -ext $extension "-d" "Version=$Version" "-d" "PublishDir=$publishDir" -pdbtype none -intermediatefolder (Join-Path $repo ".cache/installer-build/$architecture") -out $msi
     if ($LASTEXITCODE -ne 0) { throw 'MSI build failed.' }
-    $instructions = [IO.File]::ReadAllText((Join-Path $repo 'installer/INSTALL.txt')).Replace('Folio-1.0.0-x64.msi', "Folio-$Version-x64.msi")
+    $instructions = [IO.File]::ReadAllText((Join-Path $repo 'installer/INSTALL.txt')).Replace('Folio-1.0.0-x64.msi', "Folio-$Version-$architecture.msi")
     [IO.File]::WriteAllText((Join-Path $outputDir 'INSTALL.txt'), $instructions)
     $hash = Get-FileHash -LiteralPath $msi -Algorithm SHA256
     "$($hash.Hash)  $([IO.Path]::GetFileName($msi))" | Set-Content -LiteralPath "$msi.sha256" -Encoding ascii

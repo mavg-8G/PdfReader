@@ -22,7 +22,7 @@ dotnet build PdfReader/PdfReader.csproj -p:Platform=x64 --no-restore
 
 Restore downloads the native PDFium library from nuget.org; the build copies it beside the executable. There is no separate asset setup step.
 
-The direct NuGet dependencies are **Microsoft.WindowsAppSDK 2.5.1**, **Microsoft.Windows.SDK.BuildTools 10.0.28000.2705**, and **bblanchon.PDFium.Win32 157.0.8086**, which contains only the prebuilt native `pdfium.dll` for x64 and ARM64. The C# bindings are hand-written in `PdfReader.Core/PdfiumNative.cs` and cover just the calls Folio uses. `packages.lock.json` pins the NuGet dependency graph. Scanned-page OCR and printing use APIs built into Windows. No MVVM, PDF wrapper, test-runner or UI packages are added.
+The direct NuGet dependencies are **Microsoft.WindowsAppSDK 2.5.1**, **Microsoft.Windows.SDK.BuildTools 10.0.28000.2705**, and **bblanchon.PDFium.Win32 157.0.8086**, which contains prebuilt native `pdfium.dll` files for x86, x64 and ARM64. The C# bindings are hand-written in `PdfReader.Core/PdfiumNative.cs` and cover just the calls Folio uses. `packages.lock.json` pins the NuGet dependency graph. Scanned-page OCR and printing use APIs built into Windows. No MVVM, PDF wrapper, test-runner or UI packages are added.
 
 Alternatively:
 
@@ -50,10 +50,10 @@ You can pass a PDF path as the application's first argument:
 
 ```powershell
 ./scripts/build.ps1 -Configuration Release -Platform x64 -Publish
-# Or use -Platform ARM64 for a native Windows ARM64 build.
+# Or use -Platform x86 or -Platform ARM64.
 ```
 
-Distribute the **entire** `artifacts/Folio-x64` folder. Run `PdfReader.exe` from that folder. Self-contained output includes .NET, Windows App SDK and PDFium; nothing else has to be installed. ARM64 requires testing on ARM64 hardware.
+Distribute the **entire** `artifacts/Folio-<Platform>` folder. Run `PdfReader.exe` from that folder. Self-contained output includes .NET, Windows App SDK and PDFium; nothing else has to be installed. ARM64 requires testing on ARM64 hardware.
 
 ## Build a Windows MSI installer
 
@@ -61,13 +61,17 @@ Distribute the **entire** `artifacts/Folio-x64` folder. Run `PdfReader.exe` from
 ./scripts/build-installer.ps1
 # For a later release:
 ./scripts/build-installer.ps1 -Version 1.0.1
+./scripts/build-installer.ps1 -Platform x86 -Version 1.0.1
+./scripts/build-installer.ps1 -Platform ARM64 -Version 1.0.1
 ```
 
-The output is `artifacts/installer/Folio-1.0.0-x64.msi`, with installation instructions and a SHA-256 checksum beside it. Double-click the MSI, approve the administrator prompt, and follow the setup wizard. Launch **Folio** from the Start menu. Users do **not** need Visual Studio, the .NET SDK, or a separately installed .NET runtime. Setup installs into Program Files by default and supports repair, upgrades, downgrade prevention, and uninstall through Windows Settings. Rebuilding the same version replaces that version; use increasing three-part versions for releases.
+The output is `artifacts/installer/Folio-<version>-<architecture>.msi`, with installation instructions and a SHA-256 checksum beside it. Double-click the MSI, approve the administrator prompt, and follow the setup wizard. Launch **Folio** from the Start menu. Users do **not** need Visual Studio, the .NET SDK, or a separately installed .NET runtime. Setup installs into Program Files by default and supports repair, upgrades, downgrade prevention, and uninstall through Windows Settings. Rebuilding the same version replaces that version; use increasing three-part versions for releases.
 
 The installer includes a self-contained Release build, the Windows App SDK, PDFium, and app icons. It has no prerequisites beyond Windows itself. After setup, PDF reading works offline. Uninstall removes installed program files and the Start-menu shortcut, while keeping PDFs and the user's `%LOCALAPPDATA%\Folio` reading preferences.
 
-Building the installer requires the .NET SDK already used by this project, plus internet access for the initial tool and package restore. The script keeps pinned WiX **5.0.2** and its matching dialog extension in `.cache/wix`; Visual Studio is not required to build the MSI either. `-SkipPublish` packages an existing matching self-contained release from `artifacts/installer-publish/win-x64`. The MSI is currently **unsigned**, so Windows can identify its publisher as unknown; code signing requires a publisher-owned signing certificate. The MSI targets x64 Windows 10 build 19041 and later. No Store registration, file-association takeover, or installer runtime remains running with the app.
+Building the installer requires the .NET SDK already used by this project, plus internet access for the initial tool and package restore. The script keeps pinned WiX **5.0.2** and its matching dialog extension in `.cache/wix`; Visual Studio is not required to build the MSI either. `-SkipPublish` packages an existing matching self-contained release from `artifacts/installer-publish/win-<architecture>`. The MSI is currently **unsigned**, so Windows can identify its publisher as unknown; code signing requires a publisher-owned signing certificate. The MSI targets Windows 10 build 19041 and later on its matching architecture. No Store registration, file-association takeover, or installer runtime remains running with the app.
+
+GitHub Actions builds x86, x64 and ARM64 installers on every push and on manual dispatch. Download them from the workflow run's **Artifacts** section; each artifact includes its MSI, SHA-256 checksum, and installation instructions. The installer version uses the first three parts of `Instalador/Package.appxmanifest`.
 
 ## Read scanned pages with OCR
 

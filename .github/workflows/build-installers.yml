@@ -1,0 +1,45 @@
+name: Build Windows installers
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: MSI (${{ matrix.platform }})
+    runs-on: windows-2025
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [x86, x64, ARM64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Read installer version
+        shell: pwsh
+        run: |
+          [xml]$manifest = Get-Content Instalador/Package.appxmanifest
+          $version = [version]$manifest.Package.Identity.Version
+          "FOLIO_VERSION=$($version.Major).$($version.Minor).$($version.Build)" >> $env:GITHUB_ENV
+      - name: Run core tests
+        if: matrix.platform == 'x64'
+        shell: pwsh
+        run: ./scripts/test.ps1
+      - name: Build MSI
+        shell: pwsh
+        run: ./scripts/build-installer.ps1 -Platform ${{ matrix.platform }} -Version $env:FOLIO_VERSION
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Folio-${{ env.FOLIO_VERSION }}-${{ matrix.platform }}
+          path: |
+            artifacts/installer/*.msi
+            artifacts/installer/*.sha256
+            artifacts/installer/INSTALL.txt
+          if-no-files-found: error
+          retention-days: 14

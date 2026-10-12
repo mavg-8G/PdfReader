@@ -10,12 +10,12 @@
 
     <Property Id="WINDOWSBUILDNUMBER" Secure="yes">
       <RegistrySearch Id="WindowsBuildSearch" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion"
-                      Name="CurrentBuildNumber" Type="raw" Bitness="always64" />
+                      Name="CurrentBuildNumber" Type="raw" />
     </Property>
-    <Launch Condition="Installed OR (VersionNT64 AND WINDOWSBUILDNUMBER &gt;= 19041)"
-            Message="Folio requires 64-bit Windows 10 version 2004 (build 19041) or newer." />
+    <Launch Condition="Installed OR WINDOWSBUILDNUMBER &gt;= 19041"
+            Message="Folio requires Windows 10 version 2004 (build 19041) or newer." />
 
-    <StandardDirectory Id="ProgramFiles64Folder">
+    <StandardDirectory Id="ProgramFiles6432Folder">
       <Directory Id="INSTALLFOLDER" Name="Folio" />
     </StandardDirectory>
     <StandardDirectory Id="ProgramMenuFolder">

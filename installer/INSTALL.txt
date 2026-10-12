@@ -4,8 +4,8 @@ Folio for Windows - installation
 2. Approve Windows' administrator prompt to install into Program Files.
 3. Open Folio from the Start menu. Visual Studio and the .NET SDK are not needed.
 
-Requirements: 64-bit Windows 10 version 2004 or later. Nothing else needs
-to be installed first.
+Requirements: Windows 10 version 2004 or later on the matching CPU
+architecture. Nothing else needs to be installed first.
 
 The .NET and Windows App SDK runtimes, the PDFium renderer, and icons are
 included. PDF reading works offline. Reading scanned pages uses the text
