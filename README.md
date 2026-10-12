@@ -71,7 +71,7 @@ The installer includes a self-contained Release build, the Windows App SDK, PDFi
 
 Building the installer requires the .NET SDK already used by this project, plus internet access for the initial tool and package restore. The script keeps pinned WiX **5.0.2** and its matching dialog extension in `.cache/wix`; Visual Studio is not required to build the MSI either. `-SkipPublish` packages an existing matching self-contained release from `artifacts/installer-publish/win-<architecture>`. The MSI is currently **unsigned**, so Windows can identify its publisher as unknown; code signing requires a publisher-owned signing certificate. The MSI targets Windows 10 build 19041 and later on its matching architecture. No Store registration, file-association takeover, or installer runtime remains running with the app.
 
-GitHub Actions builds x86, x64 and ARM64 installers on every push and on manual dispatch. Download them from the workflow run's **Artifacts** section; each artifact includes its MSI, SHA-256 checksum, and installation instructions. The installer version uses the first three parts of `Instalador/Package.appxmanifest`.
+GitHub Actions builds x86, x64 and ARM64 installers on every push and on manual dispatch. Once all three builds succeed on `master`, it publishes one GitHub Release with the three MSI files and their SHA-256 checksums as direct downloads. The release tag and installer version use the first three parts of `Instalador/Package.appxmanifest` (for example, `1.0.14.0` becomes `v1.0.14`). Later pushes with the same version keep that release; bump the manifest version to publish a new one. The workflow artifacts are only used to transfer files between jobs.
 
 ## Read scanned pages with OCR
 
